@@ -10,6 +10,7 @@ import transactionRoutes from "./routes/transactionRoutes";
 import analyticsRoutes from "./routes/analyticsRoutes";
 import budgetRoutes from "./routes/budgetRoutes";
 import goalRoutes from "./routes/goalRoutes";
+import insightRoutes from "./routes/insightRoutes";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use("/api/transactions", transactionRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/budgets", budgetRoutes);
 app.use("/api/goals", goalRoutes);
+app.use("/api/insights", insightRoutes);
 
 app.get("/", (req, res) => {
   res.send("Finance API running...");
