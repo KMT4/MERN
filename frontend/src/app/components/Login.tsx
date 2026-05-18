@@ -94,6 +94,8 @@ export function Login({ onLogin }: LoginProps) {
                 className="w-full pl-12 pr-4 py-3 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring focus:border-transparent outline-none transition-all"
                 placeholder="••••••••"
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
           </div>
