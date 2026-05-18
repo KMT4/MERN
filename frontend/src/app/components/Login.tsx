@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Lock, Mail } from 'lucide-react';
+import { useState } from "react";
+import { Lock, Mail } from "lucide-react";
+import { loginUser, registerUser } from "../../api/auth";
 
 interface LoginProps {
   onLogin: () => void;
@@ -7,10 +8,39 @@ interface LoginProps {
 
 export function Login({ onLogin }: LoginProps) {
   const [isSignup, setIsSignup] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin();
+    setLoading(true);
+    setError("");
+
+    try {
+      if (isSignup) {
+        await registerUser({
+          fullName,
+          email,
+          password,
+        });
+      }
+
+      const res = await loginUser({
+        email,
+        password,
+      });
+
+      localStorage.setItem("token", res.token);
+
+      onLogin(); // move to dashboard
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -18,18 +48,24 @@ export function Login({ onLogin }: LoginProps) {
       <div className="bg-card rounded-xl shadow-2xl p-8 w-full max-w-md border border-border">
         <div className="text-center mb-8">
           <h1 className="text-card-foreground mb-2">FinanceTracker</h1>
-          <p className="text-muted-foreground">AI-Powered Personal Finance Management</p>
+          <p className="text-muted-foreground">
+            AI-Powered Personal Finance Management
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {isSignup && (
             <div>
-              <label className="block text-card-foreground mb-2">Full Name</label>
+              <label className="block text-card-foreground mb-2">
+                Full Name
+              </label>
               <input
                 type="text"
                 className="w-full px-4 py-3 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring focus:border-transparent outline-none transition-all"
-                placeholder="John Doe"
+                placeholder="enter your full name"
                 required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
               />
             </div>
           )}
@@ -43,6 +79,8 @@ export function Login({ onLogin }: LoginProps) {
                 className="w-full pl-12 pr-4 py-3 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring focus:border-transparent outline-none transition-all"
                 placeholder="you@example.com"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
           </div>
@@ -60,11 +98,14 @@ export function Login({ onLogin }: LoginProps) {
             </div>
           </div>
 
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
           <button
             type="submit"
-            className="w-full bg-primary text-primary-foreground py-3 rounded-lg hover:bg-primary/90 transition-colors"
+            disabled={loading}
+            className="w-full bg-primary text-primary-foreground py-3 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
-            {isSignup ? 'Create Account' : 'Sign In'}
+            {isSignup ? "Create Account" : "Sign In"}
           </button>
 
           <div className="text-center">
@@ -73,7 +114,9 @@ export function Login({ onLogin }: LoginProps) {
               onClick={() => setIsSignup(!isSignup)}
               className="text-primary hover:underline"
             >
-              {isSignup ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+              {isSignup
+                ? "Already have an account? Sign in"
+                : "Don't have an account? Sign up"}
             </button>
           </div>
         </form>
