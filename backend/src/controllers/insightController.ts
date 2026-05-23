@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 
 import Transaction from "../models/Transaction";
 import { AuthRequest } from "../middleware/authMiddleware";
+import { refreshRecurringFlags } from "../services/recurringService";
 
 // DETECT RECURRING TRANSACTIONS
 export const detectRecurringTransactions = async (
@@ -79,6 +80,27 @@ export const detectRecurringTransactions = async (
     res.status(500).json({
       success: false,
       message: "Failed to detect recurring transactions",
+    });
+  }
+};
+
+export const refreshRecurringTransactions = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const result = await refreshRecurringFlags(req.userId as string);
+
+    res.status(200).json({
+      success: true,
+      message: "Recurring transaction flags refreshed",
+      ...result,
+    });
+  } catch (error) {
+    console.error("Refresh Recurring Transactions Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to refresh recurring transactions",
     });
   }
 };

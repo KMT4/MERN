@@ -16,6 +16,10 @@ const transactionSchema = new mongoose.Schema(
 
     paymentMethod: { type: String },
 
+    autoCategorized: { type: Boolean, default: false },
+
+    categoryConfidence: { type: Number, default: 1.0 },
+
     isRecurring: { type: Boolean, default: false }
   },
   { timestamps: true }

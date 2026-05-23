@@ -11,7 +11,10 @@ import analyticsRoutes from "./routes/analyticsRoutes";
 import budgetRoutes from "./routes/budgetRoutes";
 import goalRoutes from "./routes/goalRoutes";
 import insightRoutes from "./routes/insightRoutes";
-import aiRoutes from "./routes/aiRoutes"
+import aiRoutes from "./routes/aiRoutes";
+import loanRoutes from "./routes/loanRoutes";
+import userRoutes from "./routes/userRoutes";
+import reportRoutes from "./routes/reportRoutes";
 
 const app = express();
 
@@ -28,6 +31,9 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/budgets", budgetRoutes);
 app.use("/api/goals", goalRoutes);
 app.use("/api/insights", insightRoutes);
+app.use("/api/loans", loanRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/reports", reportRoutes);
 app.use("/api/ai", aiRoutes);
 
 app.get("/", (req, res) => {

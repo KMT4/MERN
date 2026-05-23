@@ -8,7 +8,9 @@ const budgetSchema = new mongoose.Schema(
 
     limit: { type: Number, required: true },
 
-    month: { type: String, required: true } 
+    month: { type: String, required: true },
+
+    alertThreshold: { type: Number, default: 0.8 }
   },
   { timestamps: true }
 );

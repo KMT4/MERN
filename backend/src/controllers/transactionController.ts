@@ -1,21 +1,41 @@
 import { Response } from "express";
 import Transaction from "../models/Transaction";
 import { AuthRequest } from "../middleware/authMiddleware";
+import { classifyTransaction } from "../utils/categoryClassifier";
+import { findRecurringScore } from "../services/recurringService";
+
+const buildTransactionPayload = async (req: AuthRequest) => {
+  const { type, amount, category, description, paymentMethod, isRecurring } = req.body;
+
+  const classification = classifyTransaction(category, description, paymentMethod);
+  const recurring = isRecurring ?? await findRecurringScore(
+    req.userId as string,
+    classification.category,
+    type,
+    amount,
+    paymentMethod,
+  );
+
+  return {
+    type,
+    amount,
+    category: classification.category,
+    description,
+    paymentMethod,
+    autoCategorized: classification.autoCategorized,
+    categoryConfidence: classification.confidence,
+    isRecurring: recurring,
+  };
+};
 
 // CREATE TRANSACTION
 export const createTransaction = async (req: AuthRequest, res: Response) => {
   try {
-    const { type, amount, category, description, paymentMethod, isRecurring } =
-      req.body;
+    const transactionData = await buildTransactionPayload(req);
 
     const transaction = await Transaction.create({
       userId: req.userId,
-      type,
-      amount,
-      category,
-      description,
-      paymentMethod,
-      isRecurring,
+      ...transactionData,
     });
 
     res.status(201).json(transaction);
@@ -38,12 +58,14 @@ export const getTransactions = async (req: AuthRequest, res: Response) => {
 
 export const updateTransaction = async (req: AuthRequest, res: Response) => {
   try {
+    const transactionData = await buildTransactionPayload(req);
+
     const updated = await Transaction.findOneAndUpdate(
       {
         _id: req.params.id,
         userId: req.userId,
       },
-      req.body,
+      transactionData,
       { new: true },
     );
 
