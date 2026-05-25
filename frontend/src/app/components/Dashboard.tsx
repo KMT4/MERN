@@ -1,30 +1,126 @@
+import { useState, useEffect } from 'react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, Sparkles, Target } from 'lucide-react';
 
-const spendingData = [
-  { month: 'Jan', income: 5200, expenses: 3800, savings: 1400 },
-  { month: 'Feb', income: 5200, expenses: 4100, savings: 1100 },
-  { month: 'Mar', income: 5500, expenses: 3900, savings: 1600 },
-  { month: 'Apr', income: 5200, expenses: 4300, savings: 900 },
-  { month: 'May', income: 5800, expenses: 4200, savings: 1600 },
-];
+import api from '../../api/axios';
 
-const categoryData = [
-  { name: 'Housing', value: 1200, color: 'var(--chart-1)' },
-  { name: 'Food', value: 600, color: 'var(--chart-2)' },
-  { name: 'Transportation', value: 400, color: 'var(--chart-3)' },
-  { name: 'Entertainment', value: 300, color: 'var(--chart-4)' },
-  { name: 'Utilities', value: 250, color: 'var(--chart-5)' },
-  { name: 'Other', value: 450, color: '#9CA3AF' },
-];
+interface BalanceData {
+  income: number;
+  expense: number;
+  balance: number;
+}
 
-const aiInsights = [
-  { type: 'warning', icon: AlertTriangle, color: 'text-destructive', message: 'Your entertainment spending is 23% higher than last month' },
-  { type: 'tip', icon: Sparkles, color: 'text-chart-2', message: 'You could save $180/month by reducing dining out expenses by 30%' },
-  { type: 'goal', icon: Target, color: 'text-chart-4', message: "You're on track to reach your emergency fund goal in 4 months" },
-];
+interface MonthlyDataPoint {
+  month: string;
+  income: number;
+  expenses: number;
+  savings: number;
+}
+interface CategoryDataPoint{
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface Insight {
+  type: string;
+  icon: any;
+  color: string;
+  message: string;
+}
+interface Transaction {
+  _id: string;
+  description: string;
+  amount: number;
+  type: 'income' | 'expense';
+  category: string;
+  date: string;
+}
+
 
 export function Dashboard() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [balanceData, setBalanceData] = useState<BalanceData | null>(null);
+  const [monthlyData, setMonthlyData] = useState<MonthlyDataPoint[]>([]);
+  const [categoryData, setCategoryData] = useState<CategoryDataPoint[]>([]);
+  const [insights, setInsights] = useState<Insight[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        // Fetch all required data in parallel
+        const [balanceRes, monthlyRes, categoryRes, insightsRes, transactionsRes] = await Promise.all([
+          api.get('/analytics/balance'),
+          api.get('/analytics/monthly-summary'),
+          api.get('/analytics/category-breakdown'),
+          api.get('/insights/spending-insights'), // using the existing insight endpoint
+          api.get('/transactions?limit=5')
+        ]);
+
+        setBalanceData(balanceRes.data);
+        
+        // Transform monthly summary if needed (depends on actual response)
+        // Assuming monthlyRes.data is array of { month, income, expenses, savings }
+        setMonthlyData(monthlyRes.data);
+        
+        // Transform category breakdown to match expected format
+        const formattedCategories = categoryRes.data.map((item: any, index: number) => ({
+          name: item._id,
+          value: item.total,
+          color: `var(--chart-${(index % 5) + 1})`
+        }));
+        setCategoryData(formattedCategories);
+        
+        // Format insights from spending-insights endpoint
+        const insightsData = insightsRes.data;
+        const formattedInsights: Insight[] = [
+          {
+            type: 'warning',
+            icon: AlertTriangle,
+            color: 'text-destructive',
+            message: `Your top spending category is ${insightsData.topSpendingCategory || 'N/A'} with $${insightsData.topCategoryAmount || 0}`
+          },
+          {
+            type: 'tip',
+            icon: Sparkles,
+            color: 'text-chart-2',
+            message: `Total expenses: $${insightsData.summary?.totalExpenses || 0}`
+          },
+          {
+            type: 'goal',
+            icon: Target,
+            color: 'text-chart-4',
+            message: 'Keep tracking your goals to stay on target'
+          }
+        ];
+        setInsights(formattedInsights);
+        
+        setRecentTransactions(transactionsRes.data);
+      } catch (err) {
+        console.error('Dashboard fetch error:', err);
+        setError('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-64 text-muted-foreground">Loading dashboard...</div>;
+  }
+
+  if (error || !balanceData) {
+    return <div className="text-destructive text-center p-8">{error || 'Unable to load data'}</div>;
+  }
+
+  const monthlyIncome = monthlyData.reduce((sum, m) => sum + m.income, 0) / (monthlyData.length || 1);
+  const monthlyExpenses = monthlyData.reduce((sum, m) => sum + m.expenses, 0) / (monthlyData.length || 1);
+  const savingsRate = balanceData.income > 0 ? ((balanceData.income - balanceData.expense) / balanceData.income * 100).toFixed(0) : 0;
+
   return (
     <div className="space-y-6">
       <div>
@@ -74,7 +170,7 @@ export function Dashboard() {
         <div className="lg:col-span-2 bg-card border border-border rounded-lg p-6">
           <h3 className="text-card-foreground mb-4">Income vs Expenses</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={spendingData}>
+            <LineChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="month" stroke="var(--muted-foreground)" />
               <YAxis stroke="var(--muted-foreground)" />
@@ -129,7 +225,7 @@ export function Dashboard() {
           <h3 className="text-card-foreground">AI-Powered Insights</h3>
         </div>
         <div className="space-y-3">
-          {aiInsights.map((insight, index) => {
+          {insights.map((insight, index) => {
             const Icon = insight.icon;
             return (
               <div key={index} className="flex items-start gap-3 bg-card/50 rounded-lg p-4">

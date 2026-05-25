@@ -1,42 +1,100 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, TrendingDown, ShoppingCart, Coffee, Home, Car, Zap } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import api from '../../api/axios';
 
-const categoryIcons: Record<string, any> = {
-  Food: Coffee,
-  Housing: Home,
-  Transportation: Car,
-  Utilities: Zap,
-  Shopping: ShoppingCart,
-};
 
-const monthlyExpenses = [
-  { month: 'Jan', amount: 3800 },
-  { month: 'Feb', amount: 4100 },
-  { month: 'Mar', amount: 3900 },
-  { month: 'Apr', amount: 4300 },
-  { month: 'May', amount: 4200 },
-];
+interface Expense {
+  _id: string;
+  description: string;
+  amount: number;
+  category: string;
+  date: string;
+  isRecurring: boolean;
+}
+
+interface CategoryTotal {
+  category: string;
+  amount: number;
+  budget?: number; // optional, can be fetched separately
+  icon: any;
+  color: string;
+}
+
+const categoryIcons: Record<string, any> = { Food: Coffee, Housing: Home, Transportation: Car, Utilities: Zap, Shopping: ShoppingCart, Entertainment: ShoppingCart };
+const categoryColors: Record<string, string> = { Housing: 'var(--chart-1)', Food: 'var(--chart-2)', Transportation: 'var(--chart-3)', Utilities: 'var(--chart-4)', Entertainment: 'var(--chart-5)', Shopping: 'var(--chart-5)' };
 
 export function Expenses() {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const expenses = [
-    { id: 1, name: 'Rent', amount: 1200, category: 'Housing', date: 'May 1, 2026', recurring: true },
-    { id: 2, name: 'Grocery Shopping', amount: 156, category: 'Food', date: 'May 3, 2026', recurring: false },
-    { id: 3, name: 'Electric Bill', amount: 85, category: 'Utilities', date: 'May 7, 2026', recurring: true },
-    { id: 4, name: 'Gas', amount: 65, category: 'Transportation', date: 'May 8, 2026', recurring: false },
-    { id: 5, name: 'Internet', amount: 60, category: 'Utilities', date: 'May 5, 2026', recurring: true },
-    { id: 6, name: 'Netflix Subscription', amount: 15, category: 'Entertainment', recurring: true, date: 'May 10, 2026' },
-  ];
+  const [newExpense, setNewExpense] = useState({
+    description: '',
+    amount: 0,
+    category: 'Food',
+    date: new Date().toISOString().slice(0, 10),
+    isRecurring: false,
+    type: 'expense'
+  });
 
-  const categoryTotals = [
-    { category: 'Housing', amount: 1200, budget: 1300, icon: Home, color: 'var(--chart-1)' },
-    { category: 'Food', amount: 600, budget: 550, icon: Coffee, color: 'var(--chart-2)' },
-    { category: 'Transportation', amount: 400, budget: 450, icon: Car, color: 'var(--chart-3)' },
-    { category: 'Utilities', amount: 250, budget: 300, icon: Zap, color: 'var(--chart-4)' },
-    { category: 'Entertainment', amount: 300, budget: 250, icon: ShoppingCart, color: 'var(--chart-5)' },
-  ];
+  useEffect(() => {
+    fetchExpenses();
+  }, []);
+
+  const fetchExpenses = async () => {
+    try {
+      const res = await api.get('/transactions?type=expense');
+      // filter client-side to only expenses (or backend can accept query param)
+      const all = res.data;
+      const expenseOnly = all.filter((t: any) => t.type === 'expense');
+      setExpenses(expenseOnly);
+    } catch (err) {
+      setError('Failed to load expenses');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.post('/transactions', { ...newExpense, type: 'expense' });
+      setShowAddForm(false);
+      fetchExpenses();
+    } catch (err) {
+      console.error('Failed to add expense', err);
+    }
+  };
+
+  const totalThisMonth = expenses.filter(e => new Date(e.date).getMonth() === new Date().getMonth()).reduce((sum, e) => sum + e.amount, 0);
+  const avgDaily = totalThisMonth / (new Date().getDate() || 1);
+  const recurringTotal = expenses.filter(e => e.isRecurring).reduce((sum, e) => sum + e.amount, 0);
+
+  // Category totals
+  const categoryTotals: CategoryTotal[] = Object.entries(
+    expenses.reduce((acc, e) => {
+      acc[e.category] = (acc[e.category] || 0) + e.amount;
+      return acc;
+    }, {} as Record<string, number>)
+  ).map(([category, amount]) => ({
+    category,
+    amount,
+    icon: categoryIcons[category] || ShoppingCart,
+    color: categoryColors[category] || 'var(--chart-5)'
+  }));
+
+  // Monthly trend: group by month
+  const monthlyExpenses = expenses.reduce((acc, e) => {
+    const month = new Date(e.date).toLocaleString('default', { month: 'short' });
+    acc[month] = (acc[month] || 0) + e.amount;
+    return acc;
+  }, {} as Record<string, number>);
+  const monthlyData = Object.entries(monthlyExpenses).map(([month, amount]) => ({ month, amount }));
+
+  if (loading) return <div className="text-center p-8">Loading expenses...</div>;
+  if (error) return <div className="text-destructive text-center p-8">{error}</div>;
 
   return (
     <div className="space-y-6">
@@ -153,7 +211,7 @@ export function Expenses() {
         <div className="space-y-4">
           {categoryTotals.map((cat) => {
             const Icon = cat.icon;
-            const percentage = (cat.amount / cat.budget) * 100;
+            const percentage = (cat.amount / totalThisMonth) * 100;
             return (
               <div key={cat.category}>
                 <div className="flex items-center justify-between mb-2">
@@ -188,7 +246,7 @@ export function Expenses() {
       <div className="bg-card border border-border rounded-lg p-6">
         <h3 className="text-card-foreground mb-4">Monthly Spending Trend</h3>
         <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={monthlyExpenses}>
+          <BarChart data={monthlyData}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
             <XAxis dataKey="month" stroke="var(--muted-foreground)" />
             <YAxis stroke="var(--muted-foreground)" />
@@ -207,17 +265,17 @@ export function Expenses() {
       <div className="bg-card border border-border rounded-lg p-6">
         <h3 className="text-card-foreground mb-4">Recent Expenses</h3>
         <div className="space-y-3">
-          {expenses.map((expense) => (
-            <div key={expense.id} className="flex items-center justify-between p-3 hover:bg-accent rounded-lg transition-colors">
+          {expenses.slice(0, 10).map((expense) => (
+            <div key={expense._id} className="flex items-center justify-between p-3 hover:bg-accent rounded-lg transition-colors">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-chart-1/20 rounded-full flex items-center justify-center">
                   <TrendingDown className="w-5 h-5 text-chart-1" />
                 </div>
                 <div>
-                  <p className="text-card-foreground">{expense.name}</p>
+                  <p className="text-card-foreground">{expense.description}</p>
                   <p className="text-sm text-muted-foreground">
-                    {expense.category} • {expense.date}
-                    {expense.recurring && ' • Recurring'}
+                    {expense.category} • {new Date(expense.date).toLocaleDateString()}
+                    {expense.isRecurring && ' • Recurring'}
                   </p>
                 </div>
               </div>

@@ -1,15 +1,63 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, TrendingUp, Briefcase, DollarSign } from 'lucide-react';
+import api from '../../api/axios';
+
+interface Income {
+  _id: string;
+  description: string;
+  amount: number;
+  category: string;
+  date: string;
+  isRecurring: boolean;
+}
 
 export function Income() {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [incomes, setIncomes] = useState<Income[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [newIncome, setNewIncome] = useState({
+    description: '',
+    amount: 0,
+    category: 'Salary',
+    date: new Date().toISOString().slice(0, 10),
+    isRecurring: false,
+    type: 'income'
+  });
 
-  const incomeStreams = [
-    { id: 1, name: 'Primary Salary', amount: 5000, frequency: 'Monthly', category: 'Employment', nextPayment: 'May 15, 2026' },
-    { id: 2, name: 'Freelance Work', amount: 800, frequency: 'Variable', category: 'Freelance', nextPayment: 'As received' },
-    { id: 3, name: 'Investment Dividends', amount: 150, frequency: 'Quarterly', category: 'Investments', nextPayment: 'Jun 30, 2026' },
-    { id: 4, name: 'Rental Income', amount: 600, frequency: 'Monthly', category: 'Real Estate', nextPayment: 'May 1, 2026' },
-  ];
+  useEffect(() => {
+    fetchIncomes();
+  }, []);
+
+  const fetchIncomes = async () => {
+    try {
+      const res = await api.get('/transactions');
+      const incomeOnly = res.data.filter((t: any) => t.type === 'income');
+      setIncomes(incomeOnly);
+    } catch (err) {
+      setError('Failed to load income');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddIncome = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.post('/transactions', { ...newIncome, type: 'income' });
+      setShowAddForm(false);
+      fetchIncomes();
+    } catch (err) {
+      console.error('Failed to add income', err);
+    }
+  };
+
+  const totalMonthlyIncome = incomes.filter(i => new Date(i.date).getMonth() === new Date().getMonth()).reduce((sum, i) => sum + i.amount, 0);
+  const ytdIncome = incomes.reduce((sum, i) => sum + i.amount, 0);
+  const activeStreams = incomes.length;
+
+  if (loading) return <div className="text-center p-8">Loading income...</div>;
+  if (error) return <div className="text-destructive text-center p-8">{error}</div>;
 
   return (
     <div className="space-y-6">
@@ -117,21 +165,20 @@ export function Income() {
       <div className="bg-card border border-border rounded-lg p-6">
         <h3 className="text-card-foreground mb-4">Income Sources</h3>
         <div className="space-y-3">
-          {incomeStreams.map((income) => (
-            <div key={income.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent transition-colors">
+          {incomes.map((income) => (
+            <div key={income._id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent transition-colors">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-chart-2/20 rounded-full flex items-center justify-center">
                   <TrendingUp className="w-6 h-6 text-chart-2" />
                 </div>
                 <div>
-                  <p className="text-card-foreground font-medium">{income.name}</p>
-                  <p className="text-sm text-muted-foreground">{income.category} • {income.frequency}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Next: {income.nextPayment}</p>
+                  <p className="text-card-foreground font-medium">{income.description}</p>
+                  <p className="text-sm text-muted-foreground">{income.category} • {income.isRecurring ? 'Recurring' : 'One-time'}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{new Date(income.date).toLocaleDateString()}</p>
                 </div>
               </div>
               <div className="text-right">
                 <p className="text-xl font-semibold text-chart-2">+${income.amount.toLocaleString()}</p>
-                <p className="text-sm text-muted-foreground">{income.frequency}</p>
               </div>
             </div>
           ))}

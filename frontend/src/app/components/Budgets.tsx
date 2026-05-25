@@ -1,17 +1,60 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Target, AlertCircle, CheckCircle } from 'lucide-react';
+import api from '../../api/axios';
+
+interface BudgetStatus {
+  category: string;
+  limit: number;
+  spent: number;
+  remaining: number;
+  exceeded: boolean;
+  }
 
 export function Budgets() {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [budgets, setBudgets] = useState<BudgetStatus[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const budgets = [
-    { id: 1, category: 'Food', limit: 550, spent: 600, period: 'Monthly', alert: true },
-    { id: 2, category: 'Housing', limit: 1300, spent: 1200, period: 'Monthly', alert: false },
-    { id: 3, category: 'Transportation', limit: 450, spent: 400, period: 'Monthly', alert: false },
-    { id: 4, category: 'Entertainment', limit: 250, spent: 300, period: 'Monthly', alert: true },
-    { id: 5, category: 'Utilities', limit: 300, spent: 250, period: 'Monthly', alert: false },
-    { id: 6, category: 'Shopping', limit: 200, spent: 150, period: 'Monthly', alert: false },
-  ];
+  const [newBudget, setNewBudget] = useState({
+    category: 'Food',
+    limit: 0,
+    month: new Date().toISOString().slice(0, 7) // YYYY-MM
+  });
+
+  useEffect(() => {
+    fetchBudgets();
+  }, []);
+
+  const fetchBudgets = async () => {
+    try {
+      const res = await api.get('/budgets/status');
+      setBudgets(res.data);
+    } catch (err) {
+      setError('Failed to load budgets');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateBudget = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.post('/budgets', newBudget);
+      setShowAddForm(false);
+      fetchBudgets(); // refresh list
+    } catch (err) {
+      console.error('Failed to create budget', err);
+    }
+  };
+
+  const totalBudget = budgets.reduce((sum, b) => sum + b.limit, 0);
+  const totalSpent = budgets.reduce((sum, b) => sum + b.spent, 0);
+  const alertCount = budgets.filter(b => b.exceeded).length;
+
+  if (loading) return <div className="text-center p-8 text-muted-foreground">Loading budgets...</div>;
+  if (error) return <div className="text-destructive text-center p-8">{error}</div>;
 
   return (
     <div className="space-y-6">
@@ -125,11 +168,11 @@ export function Budgets() {
           const remaining = budget.limit - budget.spent;
 
           return (
-            <div key={budget.id} className={`bg-card border rounded-lg p-6 ${isOverBudget ? 'border-destructive' : 'border-border'}`}>
+            <div key={budget.category} className={`bg-card border rounded-lg p-6 ${isOverBudget ? 'border-destructive' : 'border-border'}`}>
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h4 className="text-card-foreground">{budget.category}</h4>
-                  <p className="text-sm text-muted-foreground">{budget.period}</p>
+                  <p className="text-sm text-muted-foreground">Monthly</p>
                 </div>
                 {isOverBudget ? (
                   <AlertCircle className="w-6 h-6 text-destructive" />
