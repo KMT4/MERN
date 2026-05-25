@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Login } from './components/Login';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
@@ -12,7 +12,10 @@ import { Notifications } from './components/Notifications';
 import { Settings } from './components/Settings';
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    () => localStorage.getItem('token') !== null
+  );
   const [activeView, setActiveView] = useState('dashboard');
 
   const handleLogin = () => {
@@ -20,6 +23,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('token');   // clear stored token
     setIsAuthenticated(false);
     setActiveView('dashboard');
   };
@@ -28,28 +32,19 @@ export default function App() {
     return <Login onLogin={handleLogin} />;
   }
 
+ 
   const renderView = () => {
     switch (activeView) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'income':
-        return <Income />;
-      case 'expenses':
-        return <Expenses />;
-      case 'budgets':
-        return <Budgets />;
-      case 'savings':
-        return <Savings />;
-      case 'debts':
-        return <Debts />;
-      case 'reports':
-        return <Reports />;
-      case 'notifications':
-        return <Notifications />;
-      case 'settings':
-        return <Settings />;
-      default:
-        return <Dashboard />;
+      case 'dashboard': return <Dashboard />;
+      case 'income': return <Income />;
+      case 'expenses': return <Expenses />;
+      case 'budgets': return <Budgets />;
+      case 'savings': return <Savings />;
+      case 'debts': return <Debts />;
+      case 'reports': return <Reports />;
+      case 'notifications': return <Notifications />;
+      case 'settings': return <Settings />;
+      default: return <Dashboard />;
     }
   };
 
