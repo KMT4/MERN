@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   LineChart,
   Line,
@@ -18,6 +18,8 @@ import {
   DollarSign,
   Sparkles,
   Target,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { getTransactions, Transaction } from "../../api/transactions";
 import {
@@ -26,7 +28,7 @@ import {
   getCategoryBreakdown,
   CategoryBreakdownItem,
 } from "../../api/analytics";
-import api from "../../api/axios"; // to call AI endpoint directly (or we can add it to insights.ts)
+import { getInsights, Insight } from "../../api/ai";
 
 // Colors for the pie chart categories (fallback if not in map)
 const categoryColors: Record<string, string> = {
@@ -99,11 +101,43 @@ export function Dashboard() {
   );
 
   // AI Insights
-  const [aiInsightText, setAiInsightText] = useState<string[]>([]);
+  const [aiInsights, setAiInsights] = useState<Insight[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiCached, setAiCached] = useState(false);
+  const [aiGeneratedAt, setAiGeneratedAt] = useState<string>("");
+
+  const fetchInsights = useCallback(async (force = false) => {
+    setAiLoading(true);
+    try {
+      const res = await getInsights(force);
+      setAiInsights(res.insights);
+      setAiCached(res.cached);
+      setAiGeneratedAt(res.generatedAt);
+    } catch (err) {
+      console.error("AI insights error", err);
+      setAiInsights([]);
+    } finally {
+      setAiLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+    fetchInsights(); // fetch cached insights on mount
+  }, [fetchInsights]);
+
+  const insightIcons: Record<string, any> = {
+    warning: AlertTriangle,
+    prediction: TrendingUp, // or use AlertTriangle for consistency
+    tip: Sparkles,
+    goal: Target,
+  };
+  const insightColors: Record<string, string> = {
+    warning: "text-destructive",
+    prediction: "text-yellow-400",
+    tip: "text-chart-2",
+    goal: "text-chart-4",
+  };
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -118,9 +152,10 @@ export function Dashboard() {
           getTransactions(), // all transactions for monthly trend
         ]);
 
-      // Balance
+      // Total balance (all-time)
       setBalance(balanceRes.balance);
-      setMonthlyIncome(balanceRes.income);
+
+      // Monthly income/expenses from this month's summary
       const incomeItem = summaryRes.find((s) => s._id === "income");
       const expenseItem = summaryRes.find((s) => s._id === "expense");
       const monthIncome = incomeItem ? incomeItem.total : 0;
@@ -136,7 +171,6 @@ export function Dashboard() {
       setSavingsRate(rate);
 
       // Category breakdown for pie chart
-      const totalExpenses = monthExpenses || 1; // avoid division by zero
       const pieData = breakdownRes.map((cat: CategoryBreakdownItem) => ({
         name: cat._id,
         value: cat.total,
@@ -150,23 +184,6 @@ export function Dashboard() {
 
       // Recent transactions (last 5)
       setRecentTransactions(transactionsRes.slice(0, 5));
-
-      // AI Insights – fetch separately (already have endpoint)
-      try {
-        const aiRes = await api.get("/ai/financial-insights");
-        if (aiRes.data?.success && aiRes.data?.aiInsights) {
-          const text = aiRes.data.aiInsights;
-          // Split into bullet points (lines) and filter empty lines
-          const lines = text
-            .split("\n")
-            .map((line: string) => line.trim())
-            .filter((line: string) => line.length > 0);
-          setAiInsightText(lines);
-        }
-      } catch (aiErr) {
-        console.error("AI insights fetch failed", aiErr);
-        setAiInsightText([]);
-      }
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to load dashboard data");
     } finally {
@@ -328,25 +345,59 @@ export function Dashboard() {
 
           {/* AI Insights */}
           <div className="bg-gradient-to-r from-chart-3/10 to-chart-2/10 border border-chart-3/20 rounded-lg p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-6 h-6 text-chart-3" />
-              <h3 className="text-card-foreground">AI-Powered Insights</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-6 h-6 text-chart-3" />
+                <h3 className="text-card-foreground">AI-Powered Insights</h3>
+              </div>
+              <button
+                onClick={() => fetchInsights(true)}
+                disabled={aiLoading}
+                className="flex items-center gap-1 px-3 py-1 rounded-lg text-sm bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+                title="Refresh insights"
+              >
+                <RefreshCw className="w-4 h-4" />
+                {aiLoading ? "Refreshing..." : "Refresh"}
+              </button>
             </div>
+            {aiCached && !aiLoading && (
+              <p className="text-xs text-muted-foreground mb-3">
+                Last updated: {new Date(aiGeneratedAt).toLocaleString()}
+              </p>
+            )}
             <div className="space-y-3">
-              {aiInsightText.length > 0 ? (
-                aiInsightText.map((line, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start gap-3 bg-card/50 rounded-lg p-4"
-                  >
-                    <Sparkles className="w-5 h-5 text-chart-3 mt-0.5 flex-shrink-0" />
-                    <p className="text-card-foreground">{line}</p>
-                  </div>
-                ))
-              ) : (
+              {aiInsights.length > 0 ? (
+                aiInsights.map((insight, index) => {
+                  const Icon = insightIcons[insight.type] || Sparkles;
+                  const colorClass =
+                    insightColors[insight.type] || "text-chart-3";
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-start gap-3 bg-card/50 rounded-lg p-4"
+                    >
+                      <Icon
+                        className={`w-5 h-5 ${colorClass} mt-0.5 flex-shrink-0`}
+                      />
+                      <div>
+                        <p className="text-card-foreground">
+                          {insight.message}
+                        </p>
+                        {insight.potentialSaving && (
+                          <p className="text-sm text-chart-2 mt-1">
+                            Potential saving: ${insight.potentialSaving}/month
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : !aiLoading ? (
                 <p className="text-muted-foreground">
-                  No AI insights available at the moment.
+                  No insights available. Click Refresh to generate.
                 </p>
+              ) : (
+                <p className="text-muted-foreground">Generating insights...</p>
               )}
             </div>
           </div>
