@@ -28,7 +28,7 @@ const buildTransactionPayload = async (req: AuthRequest) => {
   };
 };
 
-// CREATE TRANSACTION
+
 export const createTransaction = async (req: AuthRequest, res: Response) => {
   try {
     const transactionData = await buildTransactionPayload(req);
@@ -46,9 +46,14 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
 
 export const getTransactions = async (req: AuthRequest, res: Response) => {
   try {
-    const transactions = await Transaction.find({
-      userId: req.userId,
-    }).sort({ date: -1 });
+    const { type } = req.query; // optional filter by type
+
+    const filter: any = { userId: req.userId };
+    if (type === 'income' || type === 'expense') {
+      filter.type = type;
+    }
+
+    const transactions = await Transaction.find(filter).sort({ date: -1 });
 
     res.json(transactions);
   } catch (error) {
