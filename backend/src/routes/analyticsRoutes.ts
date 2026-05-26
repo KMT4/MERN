@@ -12,4 +12,5 @@ router.get("/monthly-summary", protect, getMonthlySummary);
 router.get("/category-breakdown", protect, getCategoryBreakdown);
 router.get("/balance", protect, getBalance);
 
+
 export default router;

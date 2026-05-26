@@ -18,9 +18,9 @@ export interface Transaction {
 
 // Fetch transactions, optionally filtered by type
 export const getTransactions = async (type?: 'income' | 'expense'): Promise<Transaction[]> => {
-  const { data } = await api.get('/transactions', {
-    params: type ? { type } : undefined,
-  });
+  const params: any = {};
+  if (type) params.type = type;
+  const { data } = await api.get('/transactions', { params });
   return data;
 };
 

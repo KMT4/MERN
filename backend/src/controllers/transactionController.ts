@@ -46,15 +46,12 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
 
 export const getTransactions = async (req: AuthRequest, res: Response) => {
   try {
-    const { type } = req.query; // optional filter by type
-
+    const { type } = req.query;
     const filter: any = { userId: req.userId };
     if (type === 'income' || type === 'expense') {
       filter.type = type;
     }
-
     const transactions = await Transaction.find(filter).sort({ date: -1 });
-
     res.json(transactions);
   } catch (error) {
     res.status(500).json({ message: "Error fetching transactions", error });

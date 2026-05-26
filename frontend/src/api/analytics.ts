@@ -26,7 +26,7 @@ export interface Balance {
   balance: number;
 }
 
-export const getBalance = async (): Promise<Balance> => {
+export const getBalance = async ( ) => {
   const { data } = await api.get('/analytics/balance');
   return data;
 };
