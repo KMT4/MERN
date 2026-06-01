@@ -8,7 +8,6 @@ import { Budgets } from './components/Budgets';
 import { Savings } from './components/Savings';
 import { Debts } from './components/Debts';
 import { Reports } from './components/Reports';
-import { Notifications } from './components/Notifications';
 import { Settings } from './components/Settings';
 
 export default function App() {
@@ -42,7 +41,6 @@ export default function App() {
       case 'savings': return <Savings />;
       case 'debts': return <Debts />;
       case 'reports': return <Reports />;
-      case 'notifications': return <Notifications />;
       case 'settings': return <Settings />;
       default: return <Dashboard />;
     }

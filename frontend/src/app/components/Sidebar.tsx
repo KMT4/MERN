@@ -7,7 +7,6 @@ import {
   FileText,
   Settings,
   Target,
-  Bell,
   LogOut
 } from 'lucide-react';
 
@@ -26,7 +25,6 @@ export function Sidebar({ activeView, setActiveView, onLogout }: SidebarProps) {
     { id: 'savings', label: 'Savings Goals', icon: PiggyBank },
     { id: 'debts', label: 'Debts & Loans', icon: CreditCard },
     { id: 'reports', label: 'Reports', icon: FileText },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
