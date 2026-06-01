@@ -27,9 +27,7 @@ export const createBudget = async (req: AuthRequest, res: Response) => {
 };
 
 export const getBudgetStatus = async (req: AuthRequest, res: Response) => {
-  //Find all expense transactions in that category
-  // sum them
-  // compare with budget limit
+
 
   try {
     const budgets = await Budget.find({
@@ -62,6 +60,7 @@ export const getBudgetStatus = async (req: AuthRequest, res: Response) => {
       const nearLimit = totalSpent >= thresholdAmount && !exceeded;
 
       results.push({
+        _id: budget._id,
         category: budget.category,
         limit: budget.limit,
         spent: totalSpent,
@@ -160,5 +159,22 @@ export const updateBudget = async (req: AuthRequest, res: Response) => {
     res.json({ success: true, budget: updatedBudget });
   } catch (error) {
     res.status(500).json({ message: "Error updating budget", error });
+  }
+};
+
+export const deleteBudget = async (req: AuthRequest, res: Response) => {
+  try {
+    const budget = await Budget.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.userId,
+    });
+
+    if (!budget) {
+      return res.status(404).json({ message: "Budget not found" });
+    }
+
+    res.json({ success: true, message: "Budget deleted" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting budget", error });
   }
 };

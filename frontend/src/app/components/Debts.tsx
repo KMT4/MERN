@@ -1,48 +1,135 @@
-import { useState } from 'react';
-import { Plus, CreditCard, TrendingDown } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Plus, CreditCard, TrendingDown, DollarSign, Trash2, RefreshCw } from "lucide-react";
+import { getLoans, getLoanSummary, createLoan, updateLoan, deleteLoan, Loan, LoanSummary } from "../../api/loans";
 
 export function Debts() {
+  // State
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [summary, setSummary] = useState<LoanSummary>({
+    totalBorrowed: 0,
+    totalRemaining: 0,
+    outstandingLoans: 0,
+    overdueLoans: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Add form state
   const [showAddForm, setShowAddForm] = useState(false);
+  const [newLoan, setNewLoan] = useState({
+    lender: "",
+    amountBorrowed: "",
+    interestRate: "",
+    dueDate: "",
+  });
 
-  const debts = [
-    {
-      id: 1,
-      name: 'Student Loan',
-      type: 'Education',
-      totalAmount: 25000,
-      remainingBalance: 18500,
-      interestRate: 4.5,
-      monthlyPayment: 350,
-      nextPaymentDate: 'May 15, 2026',
-      color: 'var(--chart-1)'
-    },
-    {
-      id: 2,
-      name: 'Car Loan',
-      type: 'Auto',
-      totalAmount: 20000,
-      remainingBalance: 12000,
-      interestRate: 3.9,
-      monthlyPayment: 400,
-      nextPaymentDate: 'May 10, 2026',
-      color: 'var(--chart-2)'
-    },
-    {
-      id: 3,
-      name: 'Credit Card',
-      type: 'Credit Card',
-      totalAmount: 5000,
-      remainingBalance: 2500,
-      interestRate: 18.9,
-      monthlyPayment: 200,
-      nextPaymentDate: 'May 20, 2026',
-      color: 'var(--chart-3)'
-    },
-  ];
+  // Payment form state
+  const [paymentLoanId, setPaymentLoanId] = useState<string | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState("");
 
-  const totalDebt = debts.reduce((sum, debt) => sum + debt.remainingBalance, 0);
-  const totalMonthlyPayment = debts.reduce((sum, debt) => sum + debt.monthlyPayment, 0);
-  const totalPaid = debts.reduce((sum, debt) => sum + (debt.totalAmount - debt.remainingBalance), 0);
+  // Fetch data
+  const fetchData = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [loansRes, summaryRes] = await Promise.all([
+        getLoans(),
+        getLoanSummary(),
+      ]);
+      setLoans(loansRes.loans);
+      setSummary(summaryRes.summary);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to load debt data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Add loan handler
+  const handleAddLoan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLoan.lender || !newLoan.amountBorrowed) return;
+
+    setLoading(true);
+    try {
+      await createLoan({
+        lender: newLoan.lender,
+        amountBorrowed: parseFloat(newLoan.amountBorrowed),
+        interestRate: newLoan.interestRate ? parseFloat(newLoan.interestRate) : undefined,
+        dueDate: newLoan.dueDate || undefined,
+      });
+      setNewLoan({ lender: "", amountBorrowed: "", interestRate: "", dueDate: "" });
+      setShowAddForm(false);
+      fetchData();
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to add loan");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete loan handler
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this loan? This action cannot be undone.")) return;
+    setLoading(true);
+    try {
+      await deleteLoan(id);
+      fetchData();
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to delete loan");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Record payment
+  const handleRecordPayment = async (loanId: string) => {
+    const amount = parseFloat(paymentAmount);
+    if (!amount || amount <= 0) return;
+    const loan = loans.find((l) => l._id === loanId);
+    if (!loan) return;
+
+    const newRemaining = Math.max(0, loan.amountRemaining - amount);
+    setLoading(true);
+    try {
+      await updateLoan(loanId, { amountRemaining: newRemaining });
+      setPaymentAmount("");
+      setPaymentLoanId(null);
+      fetchData();
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to record payment");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Calculate months remaining for a loan (assuming consistent monthly payment)
+  const getMonthsRemaining = (loan: Loan): number | null => {
+    // If no interest or monthly payment stored, we can't calculate precisely
+    // We'll just use remaining amount / a guessed monthly payment (like 5% of original)
+    const monthlyPayment = loan.amountBorrowed * 0.05; // 5% of original as default
+    if (loan.interestRate && loan.interestRate > 0) {
+      // Simple amortization: months = NPER(rate, -monthlyPayment, remaining)
+      const monthlyRate = loan.interestRate / 100 / 12;
+      if (monthlyRate > 0 && monthlyPayment > loan.amountRemaining * monthlyRate) {
+        return Math.ceil(
+          Math.log(monthlyPayment / (monthlyPayment - loan.amountRemaining * monthlyRate)) /
+            Math.log(1 + monthlyRate)
+        );
+      }
+      return Math.ceil(loan.amountRemaining / monthlyPayment);
+    }
+    return Math.ceil(loan.amountRemaining / monthlyPayment);
+  };
+
+  // Identify the highest-interest loan to suggest paying off first
+  const highestInterestLoan = loans
+    .filter((l) => l.interestRate)
+    .sort((a, b) => (b.interestRate || 0) - (a.interestRate || 0))[0];
 
   return (
     <div className="space-y-6">
@@ -60,184 +147,255 @@ export function Debts() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-muted-foreground">Total Debt</span>
-            <CreditCard className="w-5 h-5 text-chart-1" />
-          </div>
-          <div className="text-2xl font-semibold text-card-foreground">${totalDebt.toLocaleString()}</div>
-        </div>
+      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {loading && <p className="text-muted-foreground">Loading...</p>}
 
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-muted-foreground">Monthly Payments</span>
-            <TrendingDown className="w-5 h-5 text-chart-3" />
-          </div>
-          <div className="text-2xl font-semibold text-card-foreground">${totalMonthlyPayment.toLocaleString()}</div>
-        </div>
-
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-muted-foreground">Total Paid</span>
-            <TrendingDown className="w-5 h-5 text-chart-2" />
-          </div>
-          <div className="text-2xl font-semibold text-card-foreground">${totalPaid.toLocaleString()}</div>
-        </div>
-      </div>
-
-      {showAddForm && (
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h3 className="text-card-foreground mb-4">Add Debt/Loan</h3>
-          <form className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-card-foreground mb-2">Debt Name</label>
-              <input
-                type="text"
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
-                placeholder="e.g., Student Loan"
-              />
-            </div>
-            <div>
-              <label className="block text-card-foreground mb-2">Type</label>
-              <select className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none">
-                <option>Credit Card</option>
-                <option>Auto Loan</option>
-                <option>Student Loan</option>
-                <option>Mortgage</option>
-                <option>Personal Loan</option>
-                <option>Other</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-card-foreground mb-2">Total Amount</label>
-              <input
-                type="number"
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
-                placeholder="0.00"
-              />
-            </div>
-            <div>
-              <label className="block text-card-foreground mb-2">Current Balance</label>
-              <input
-                type="number"
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
-                placeholder="0.00"
-              />
-            </div>
-            <div>
-              <label className="block text-card-foreground mb-2">Interest Rate (%)</label>
-              <input
-                type="number"
-                step="0.1"
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
-                placeholder="0.0"
-              />
-            </div>
-            <div>
-              <label className="block text-card-foreground mb-2">Monthly Payment</label>
-              <input
-                type="number"
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
-                placeholder="0.00"
-              />
-            </div>
-            <div className="md:col-span-2 flex gap-3">
-              <button
-                type="submit"
-                className="bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-              >
-                Add Debt
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAddForm(false)}
-                className="bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-4">
-        {debts.map((debt) => {
-          const paidPercentage = ((debt.totalAmount - debt.remainingBalance) / debt.totalAmount) * 100;
-          const monthsRemaining = Math.ceil(debt.remainingBalance / debt.monthlyPayment);
-
-          return (
-            <div key={debt.id} className="bg-card border border-border rounded-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: `${debt.color}20` }}>
-                    <CreditCard className="w-6 h-6" style={{ color: debt.color }} />
-                  </div>
-                  <div>
-                    <h4 className="text-card-foreground">{debt.name}</h4>
-                    <p className="text-sm text-muted-foreground">{debt.type} • {debt.interestRate}% APR</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Monthly Payment</p>
-                  <p className="font-semibold text-card-foreground">${debt.monthlyPayment}</p>
-                </div>
+      {!loading && (
+        <>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-card border border-border rounded-lg p-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-muted-foreground">Total Debt</span>
+                <CreditCard className="w-5 h-5 text-chart-1" />
               </div>
+              <div className="text-2xl font-semibold text-card-foreground">
+                ${summary.totalRemaining.toLocaleString()}
+              </div>
+            </div>
+            <div className="bg-card border border-border rounded-lg p-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-muted-foreground">Outstanding Loans</span>
+                <TrendingDown className="w-5 h-5 text-chart-3" />
+              </div>
+              <div className="text-2xl font-semibold text-card-foreground">
+                {summary.outstandingLoans}
+              </div>
+            </div>
+            <div className="bg-card border border-border rounded-lg p-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-muted-foreground">Original Borrowed</span>
+                <DollarSign className="w-5 h-5 text-chart-2" />
+              </div>
+              <div className="text-2xl font-semibold text-card-foreground">
+                ${summary.totalBorrowed.toLocaleString()}
+              </div>
+            </div>
+            <div className="bg-card border border-border rounded-lg p-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-muted-foreground">Overdue</span>
+                <TrendingDown className="w-5 h-5 text-destructive" />
+              </div>
+              <div className="text-2xl font-semibold text-card-foreground">
+                {summary.overdueLoans}
+              </div>
+            </div>
+          </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Remaining Balance</span>
-                  <span className="font-semibold text-card-foreground">${debt.remainingBalance.toLocaleString()}</span>
-                </div>
-
-                <div className="w-full bg-muted rounded-full h-3">
-                  <div
-                    className="h-3 rounded-full transition-all"
-                    style={{
-                      width: `${paidPercentage}%`,
-                      backgroundColor: debt.color
-                    }}
+          {/* Add Loan Form */}
+          {showAddForm && (
+            <div className="bg-card border border-border rounded-lg p-6">
+              <h3 className="text-card-foreground mb-4">Add New Debt/Loan</h3>
+              <form onSubmit={handleAddLoan} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-card-foreground mb-2">Lender / Name</label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                    placeholder="e.g., Student Loan, Bank of America"
+                    value={newLoan.lender}
+                    onChange={(e) => setNewLoan({ ...newLoan, lender: e.target.value })}
+                    required
                   />
                 </div>
-
-                <div className="grid grid-cols-3 gap-4 pt-2 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Original</p>
-                    <p className="font-semibold text-card-foreground">${debt.totalAmount.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Paid</p>
-                    <p className="font-semibold" style={{ color: debt.color }}>
-                      ${(debt.totalAmount - debt.remainingBalance).toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Progress</p>
-                    <p className="font-semibold text-card-foreground">{paidPercentage.toFixed(1)}%</p>
-                  </div>
+                <div>
+                  <label className="block text-card-foreground mb-2">Amount Borrowed</label>
+                  <input
+                    type="number"
+                    className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                    placeholder="0.00"
+                    value={newLoan.amountBorrowed}
+                    onChange={(e) => setNewLoan({ ...newLoan, amountBorrowed: e.target.value })}
+                    required
+                    min="0.01"
+                    step="0.01"
+                  />
                 </div>
-
-                <div className="pt-3 border-t border-border flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Next payment: {debt.nextPaymentDate}</span>
-                  <span className="text-muted-foreground">~{monthsRemaining} months remaining</span>
+                <div>
+                  <label className="block text-card-foreground mb-2">Interest Rate (%)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                    placeholder="e.g., 5.5"
+                    value={newLoan.interestRate}
+                    onChange={(e) => setNewLoan({ ...newLoan, interestRate: e.target.value })}
+                  />
                 </div>
-              </div>
+                <div>
+                  <label className="block text-card-foreground mb-2">Due Date (optional)</label>
+                  <input
+                    type="date"
+                    className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                    value={newLoan.dueDate}
+                    onChange={(e) => setNewLoan({ ...newLoan, dueDate: e.target.value })}
+                  />
+                </div>
+                <div className="md:col-span-2 flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    {loading ? "Saving..." : "Add Debt"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddForm(false)}
+                    className="bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
-          );
-        })}
-      </div>
+          )}
 
-      <div className="bg-gradient-to-r from-chart-1/10 to-chart-2/10 border border-chart-1/20 rounded-lg p-6">
-        <h3 className="text-card-foreground mb-3">Debt Payoff Strategy</h3>
-        <div className="space-y-2 text-sm">
-          <p className="text-muted-foreground">
-            Consider paying off your Credit Card first (highest interest rate at 18.9%) to minimize interest charges.
-          </p>
-          <p className="text-muted-foreground">
-            With an extra $100/month payment, you could save $450 in interest and pay off 3 months earlier.
-          </p>
-        </div>
-      </div>
+          {/* Loans List */}
+          <div className="grid grid-cols-1 gap-4">
+            {loans.map((loan) => {
+              const paidPercentage =
+                loan.amountBorrowed > 0
+                  ? ((loan.amountBorrowed - loan.amountRemaining) / loan.amountBorrowed) * 100
+                  : 0;
+              const monthsRemaining = getMonthsRemaining(loan);
+              const isOverdue = loan.dueDate && new Date(loan.dueDate) < new Date() && loan.amountRemaining > 0;
+
+              return (
+                <div key={loan._id} className="bg-card border border-border rounded-lg p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-chart-1/20 rounded-full flex items-center justify-center">
+                        <CreditCard className="w-6 h-6 text-chart-1" />
+                      </div>
+                      <div>
+                        <h4 className="text-card-foreground">{loan.lender}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {loan.interestRate ? `${loan.interestRate}% APR` : "No interest"}
+                          {isOverdue && <span className="text-destructive ml-2">Overdue</span>}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setPaymentLoanId(loan._id)}
+                        className="px-3 py-1 text-sm bg-chart-2/10 text-chart-2 rounded-lg hover:bg-chart-2/20 transition-colors"
+                      >
+                        Record Payment
+                      </button>
+                      <button
+                        onClick={() => handleDelete(loan._id)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        title="Delete loan"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Payment Form */}
+                  {paymentLoanId === loan._id && (
+                    <div className="mb-4 p-4 bg-accent rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          className="flex-1 px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                          placeholder="Payment amount"
+                          value={paymentAmount}
+                          onChange={(e) => setPaymentAmount(e.target.value)}
+                          min="0.01"
+                          step="0.01"
+                        />
+                        <button
+                          onClick={() => handleRecordPayment(loan._id)}
+                          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                        >
+                          Pay
+                        </button>
+                        <button
+                          onClick={() => {
+                            setPaymentLoanId(null);
+                            setPaymentAmount("");
+                          }}
+                          className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Remaining Balance</span>
+                      <span className="font-semibold text-card-foreground">
+                        ${loan.amountRemaining.toLocaleString()}
+                      </span>
+                    </div>
+
+                    <div className="w-full bg-muted rounded-full h-3">
+                      <div
+                        className="h-3 rounded-full"
+                        style={{
+                          width: `${paidPercentage}%`,
+                          backgroundColor: "var(--chart-2)",
+                        }}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4 pt-2 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Original</p>
+                        <p className="font-semibold text-card-foreground">
+                          ${loan.amountBorrowed.toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Paid</p>
+                        <p className="font-semibold text-chart-2">
+                          ${(loan.amountBorrowed - loan.amountRemaining).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Progress</p>
+                        <p className="font-semibold text-card-foreground">{paidPercentage.toFixed(1)}%</p>
+                      </div>
+                    </div>
+
+                    {monthsRemaining && (
+                      <div className="pt-3 border-t border-border text-sm text-muted-foreground">
+                        Est. months remaining: {monthsRemaining}
+                        {loan.dueDate && ` | Due: ${new Date(loan.dueDate).toLocaleDateString()}`}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Debt Payoff Strategy */}
+          {highestInterestLoan && (
+            <div className="bg-gradient-to-r from-chart-1/10 to-chart-2/10 border border-chart-1/20 rounded-lg p-6">
+              <h3 className="text-card-foreground mb-3">Recommended Repayment Strategy</h3>
+              <p className="text-sm text-muted-foreground">
+                Focus on paying off <strong className="text-card-foreground">{highestInterestLoan.lender}</strong> first
+                (highest interest rate at {highestInterestLoan.interestRate}%). This will save you the most on interest charges.
+              </p>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
