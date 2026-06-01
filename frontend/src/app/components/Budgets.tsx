@@ -16,6 +16,12 @@ import {
   deleteBudget,
 } from "../../api/budgets";
 import type { BudgetStatus } from "../../api/budgets";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
 
 const CATEGORIES = [
   "Food",
@@ -163,14 +169,14 @@ export function Budgets() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-foreground mb-1">Budget Management</h2>
           <p className="text-muted-foreground">
             Set spending limits and track progress
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <button
             onClick={fetchData}
             disabled={loading}
@@ -179,8 +185,8 @@ export function Budgets() {
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
           <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
           >
             <Plus className="w-5 h-5" /> Create Budget
           </button>
@@ -230,13 +236,14 @@ export function Budgets() {
         </div>
       </div>
 
-      {/* Create Budget Form */}
-      {showAddForm && (
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h3 className="text-card-foreground mb-4">Create New Budget</h3>
+      <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create New Budget</DialogTitle>
+          </DialogHeader>
           <form
             onSubmit={handleCreate}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2"
           >
             <div>
               <label className="block text-card-foreground mb-2">Category</label>
@@ -297,25 +304,102 @@ export function Budgets() {
                 Alert when spending reaches this % of limit
               </p>
             </div>
-            <div className="md:col-span-2 flex gap-3">
+            <div className="flex flex-col-reverse gap-3 sm:col-span-2 sm:flex-row">
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                className="w-full bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 sm:w-auto"
               >
                 {loading ? "Saving..." : "Create Budget"}
               </button>
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90 transition-colors"
+                className="w-full bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90 transition-colors sm:w-auto"
               >
                 Cancel
               </button>
             </div>
           </form>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={editingBudgetId !== null}
+        onOpenChange={(open) => {
+          if (!open) cancelEdit();
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Budget</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdate} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-card-foreground mb-2">Category</label>
+              <select
+                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                value={editForm.category}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, category: e.target.value })
+                }
+              >
+                {CATEGORIES.map((cat) => (
+                  <option key={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-card-foreground mb-2">Budget Limit ($)</label>
+              <input
+                type="number"
+                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                value={editForm.limit}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, limit: e.target.value })
+                }
+                required
+                min="0.01"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label className="block text-card-foreground mb-2">
+                Alert Threshold (%)
+              </label>
+              <input
+                type="number"
+                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                value={editForm.alertThreshold}
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    alertThreshold: e.target.value,
+                  })
+                }
+                min="1"
+                max="100"
+              />
+            </div>
+            <div className="flex flex-col-reverse gap-3 sm:col-span-2 sm:flex-row">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 sm:w-auto"
+              >
+                {loading ? "Saving..." : "Save Budget"}
+              </button>
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="w-full bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90 transition-colors sm:w-auto"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Budget Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -335,83 +419,11 @@ export function Budgets() {
             ? "border-chart-4"
             : "border-border";
 
-          const isEditing = editingBudgetId === budget._id;
-
           return (
             <div
               key={budget._id}
               className={`bg-card border ${borderColor} rounded-lg p-6`}
             >
-              {isEditing ? (
-                <form onSubmit={handleUpdate} className="space-y-4">
-                  <h4 className="text-card-foreground font-medium">Edit Budget</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-card-foreground mb-1 text-sm">
-                        Category
-                      </label>
-                      <select
-                        className="w-full px-3 py-2 bg-input-background rounded-lg border border-border outline-none"
-                        value={editForm.category}
-                        onChange={(e) =>
-                          setEditForm({ ...editForm, category: e.target.value })
-                        }
-                      >
-                        {CATEGORIES.map((cat) => (
-                          <option key={cat}>{cat}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-card-foreground mb-1 text-sm">
-                        Limit ($)
-                      </label>
-                      <input
-                        type="number"
-                        className="w-full px-3 py-2 bg-input-background rounded-lg border border-border outline-none"
-                        value={editForm.limit}
-                        onChange={(e) =>
-                          setEditForm({ ...editForm, limit: e.target.value })
-                        }
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-card-foreground mb-1 text-sm">
-                        Alert Threshold (%)
-                      </label>
-                      <input
-                        type="number"
-                        className="w-full px-3 py-2 bg-input-background rounded-lg border border-border outline-none"
-                        value={editForm.alertThreshold}
-                        onChange={(e) =>
-                          setEditForm({
-                            ...editForm,
-                            alertThreshold: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="flex items-end space-x-2">
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm disabled:opacity-50"
-                      >
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        onClick={cancelEdit}
-                        className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg text-sm"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              ) : (
-                <>
                   {/* Card Header */}
                   <div className="flex items-center justify-between mb-4">
                     <div>
@@ -500,8 +512,6 @@ export function Budgets() {
                       </div>
                     )}
                   </div>
-                </>
-              )}
             </div>
           );
         })}

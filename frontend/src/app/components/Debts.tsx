@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { Plus, CreditCard, TrendingDown, DollarSign, Trash2, RefreshCw } from "lucide-react";
 import { getLoans, getLoanSummary, createLoan, updateLoan, deleteLoan, Loan, LoanSummary } from "../../api/loans";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
 
 export function Debts() {
   // State
@@ -133,14 +139,14 @@ export function Debts() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-foreground mb-1">Debts & Loans</h2>
           <p className="text-muted-foreground">Manage your debts and repayment schedules</p>
         </div>
         <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+          onClick={() => setShowAddForm(true)}
+          className="flex w-full items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors sm:w-auto"
         >
           <Plus className="w-5 h-5" />
           Add Debt
@@ -149,6 +155,76 @@ export function Debts() {
 
       {error && <p className="text-red-500 text-sm">{error}</p>}
       {loading && <p className="text-muted-foreground">Loading...</p>}
+
+      <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Debt/Loan</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddLoan} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-card-foreground mb-2">Lender / Name</label>
+              <input
+                type="text"
+                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                placeholder="e.g., Student Loan, Bank of America"
+                value={newLoan.lender}
+                onChange={(e) => setNewLoan({ ...newLoan, lender: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-card-foreground mb-2">Amount Borrowed</label>
+              <input
+                type="number"
+                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                placeholder="0.00"
+                value={newLoan.amountBorrowed}
+                onChange={(e) => setNewLoan({ ...newLoan, amountBorrowed: e.target.value })}
+                required
+                min="0.01"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <label className="block text-card-foreground mb-2">Interest Rate (%)</label>
+              <input
+                type="number"
+                step="0.1"
+                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                placeholder="e.g., 5.5"
+                value={newLoan.interestRate}
+                onChange={(e) => setNewLoan({ ...newLoan, interestRate: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-card-foreground mb-2">Due Date (optional)</label>
+              <input
+                type="date"
+                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                value={newLoan.dueDate}
+                onChange={(e) => setNewLoan({ ...newLoan, dueDate: e.target.value })}
+              />
+            </div>
+            <div className="flex flex-col-reverse gap-3 sm:col-span-2 sm:flex-row">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 sm:w-auto"
+              >
+                {loading ? "Saving..." : "Add Debt"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAddForm(false)}
+                className="w-full bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90 transition-colors sm:w-auto"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {!loading && (
         <>
@@ -192,75 +268,6 @@ export function Debts() {
             </div>
           </div>
 
-          {/* Add Loan Form */}
-          {showAddForm && (
-            <div className="bg-card border border-border rounded-lg p-6">
-              <h3 className="text-card-foreground mb-4">Add New Debt/Loan</h3>
-              <form onSubmit={handleAddLoan} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-card-foreground mb-2">Lender / Name</label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
-                    placeholder="e.g., Student Loan, Bank of America"
-                    value={newLoan.lender}
-                    onChange={(e) => setNewLoan({ ...newLoan, lender: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-card-foreground mb-2">Amount Borrowed</label>
-                  <input
-                    type="number"
-                    className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
-                    placeholder="0.00"
-                    value={newLoan.amountBorrowed}
-                    onChange={(e) => setNewLoan({ ...newLoan, amountBorrowed: e.target.value })}
-                    required
-                    min="0.01"
-                    step="0.01"
-                  />
-                </div>
-                <div>
-                  <label className="block text-card-foreground mb-2">Interest Rate (%)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
-                    placeholder="e.g., 5.5"
-                    value={newLoan.interestRate}
-                    onChange={(e) => setNewLoan({ ...newLoan, interestRate: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-card-foreground mb-2">Due Date (optional)</label>
-                  <input
-                    type="date"
-                    className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
-                    value={newLoan.dueDate}
-                    onChange={(e) => setNewLoan({ ...newLoan, dueDate: e.target.value })}
-                  />
-                </div>
-                <div className="md:col-span-2 flex gap-3">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-                  >
-                    {loading ? "Saving..." : "Add Debt"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddForm(false)}
-                    className="bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
           {/* Loans List */}
           <div className="grid grid-cols-1 gap-4">
             {loans.map((loan) => {
@@ -273,8 +280,8 @@ export function Debts() {
 
               return (
                 <div key={loan._id} className="bg-card border border-border rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-4">
+                  <div className="flex flex-col gap-4 mb-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-center gap-4">
                       <div className="w-12 h-12 bg-chart-1/20 rounded-full flex items-center justify-center">
                         <CreditCard className="w-6 h-6 text-chart-1" />
                       </div>
@@ -286,7 +293,7 @@ export function Debts() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-between gap-3 sm:justify-end">
                       <button
                         onClick={() => setPaymentLoanId(loan._id)}
                         className="px-3 py-1 text-sm bg-chart-2/10 text-chart-2 rounded-lg hover:bg-chart-2/20 transition-colors"
@@ -303,37 +310,49 @@ export function Debts() {
                     </div>
                   </div>
 
-                  {/* Payment Form */}
-                  {paymentLoanId === loan._id && (
-                    <div className="mb-4 p-4 bg-accent rounded-lg">
-                      <div className="flex items-center gap-3">
+                  <Dialog
+                    open={paymentLoanId === loan._id}
+                    onOpenChange={(open) => {
+                      if (!open) {
+                        setPaymentLoanId(null);
+                        setPaymentAmount("");
+                      }
+                    }}
+                  >
+                    <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Record Payment</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
                         <input
                           type="number"
-                          className="flex-1 px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                          className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
                           placeholder="Payment amount"
                           value={paymentAmount}
                           onChange={(e) => setPaymentAmount(e.target.value)}
                           min="0.01"
                           step="0.01"
                         />
-                        <button
-                          onClick={() => handleRecordPayment(loan._id)}
-                          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                        >
-                          Pay
-                        </button>
-                        <button
-                          onClick={() => {
-                            setPaymentLoanId(null);
-                            setPaymentAmount("");
-                          }}
-                          className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors"
-                        >
-                          Cancel
-                        </button>
+                        <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                          <button
+                            onClick={() => handleRecordPayment(loan._id)}
+                            className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors sm:w-auto"
+                          >
+                            Pay
+                          </button>
+                          <button
+                            onClick={() => {
+                              setPaymentLoanId(null);
+                              setPaymentAmount("");
+                            }}
+                            className="w-full px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition-colors sm:w-auto"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    </DialogContent>
+                  </Dialog>
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
@@ -353,7 +372,7 @@ export function Debts() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4 pt-2 text-sm">
+                    <div className="grid grid-cols-1 gap-4 pt-2 text-sm sm:grid-cols-3">
                       <div>
                         <p className="text-muted-foreground">Original</p>
                         <p className="font-semibold text-card-foreground">

@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import { Plus, TrendingUp, Briefcase, DollarSign, Trash2 } from 'lucide-react';
 import { getTransactions, createTransaction, deleteTransaction, Transaction } from '../../api/transactions';
 import { getMonthlySummary } from '../../api/analytics';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
 
 const INCOME_CATEGORIES = [
   'Employment',
@@ -103,14 +109,14 @@ export function Income() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-foreground mb-1">Income Tracking</h2>
           <p className="text-muted-foreground">Manage your income sources</p>
         </div>
         <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+          onClick={() => setShowAddForm(true)}
+          className="flex w-full items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors sm:w-auto"
         >
           <Plus className="w-5 h-5" />
           Add Income
@@ -152,11 +158,12 @@ export function Income() {
 
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
-      {/* Add Income Form */}
-      {showAddForm && (
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h3 className="text-card-foreground mb-4">Add New Income</h3>
-          <form onSubmit={handleAddIncome} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Income</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddIncome} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-card-foreground mb-2">Description</label>
               <input
@@ -223,25 +230,25 @@ export function Income() {
               />
               <label htmlFor="income-recurring" className="text-card-foreground">Recurring income</label>
             </div>
-            <div className="md:col-span-2 flex gap-3">
+            <div className="flex flex-col-reverse gap-3 sm:col-span-2 sm:flex-row">
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                className="w-full bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 sm:w-auto"
               >
                 {loading ? 'Saving...' : 'Save Income'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90 transition-colors"
+                className="w-full bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90 transition-colors sm:w-auto"
               >
                 Cancel
               </button>
             </div>
           </form>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Income List */}
       <div className="bg-card border border-border rounded-lg p-6">
@@ -254,13 +261,13 @@ export function Income() {
           {incomes.map((income) => (
             <div
               key={income._id}
-              className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent transition-colors"
+              className="flex flex-col gap-4 p-4 border border-border rounded-lg hover:bg-accent transition-colors sm:flex-row sm:items-center sm:justify-between"
             >
-              <div className="flex items-center gap-4">
+              <div className="flex min-w-0 items-center gap-4">
                 <div className="w-12 h-12 bg-chart-2/20 rounded-full flex items-center justify-center">
                   <TrendingUp className="w-6 h-6 text-chart-2" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-card-foreground font-medium">{income.description}</p>
                   <p className="text-sm text-muted-foreground">
                     {income.category} • {new Date(income.date).toLocaleDateString()}
@@ -268,7 +275,7 @@ export function Income() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-3 sm:justify-end">
                 <p className="text-xl font-semibold text-chart-2">
                   +${income.amount.toLocaleString()}
                 </p>

@@ -14,6 +14,12 @@ import {
   updateGoalProgress,
   deleteGoal,
 } from "../../api/goal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
 
 interface Goal {
   _id: string;
@@ -174,7 +180,7 @@ export function Savings() {
   return (
     <div className="space-y-6">
       {/* HEADER */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-foreground text-2xl font-semibold mb-1">
             Savings Goals
@@ -187,9 +193,9 @@ export function Savings() {
 
         <button
           onClick={() =>
-            setShowAddForm(!showAddForm)
+            setShowAddForm(true)
           }
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+          className="flex w-full items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors sm:w-auto"
         >
           <Plus className="w-5 h-5" />
           Add Goal
@@ -241,16 +247,14 @@ export function Savings() {
         </div>
       </div>
 
-      {/* CREATE FORM */}
-      {showAddForm && (
-        <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="text-lg font-semibold mb-5">
-            Create Savings Goal
-          </h3>
-
+      <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create Savings Goal</DialogTitle>
+          </DialogHeader>
           <form
             onSubmit={handleCreateGoal}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2"
           >
             <input
               type="text"
@@ -308,10 +312,10 @@ export function Savings() {
               className="w-full px-4 py-3 bg-input-background border border-border rounded-lg outline-none"
             />
 
-            <div className="md:col-span-2 flex gap-3">
+            <div className="flex flex-col-reverse gap-3 sm:col-span-2 sm:flex-row">
               <button
                 type="submit"
-                className="bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90"
+                className="w-full bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 sm:w-auto"
               >
                 Create Goal
               </button>
@@ -322,14 +326,14 @@ export function Savings() {
                   setShowAddForm(false)
                   
                 }
-                className="bg-secondary px-6 py-3 rounded-lg"
+                className="w-full bg-secondary px-6 py-3 rounded-lg sm:w-auto"
               >
                 Cancel
               </button>
             </div>
           </form>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* EMPTY STATE */}
       {goals.length === 0 && (
@@ -353,8 +357,8 @@ export function Savings() {
             key={goal._id}
             className="bg-card border border-border rounded-xl p-6"
           >
-            <div className="flex items-start justify-between mb-5">
-              <div>
+            <div className="flex flex-col gap-3 mb-5 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
                 <h3 className="text-lg font-semibold">
                   {goal.title}
                 </h3>
@@ -404,7 +408,7 @@ export function Savings() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 mb-5">
+            <div className="grid grid-cols-1 gap-4 mb-5 sm:grid-cols-3">
               <div>
                 <p className="text-sm text-muted-foreground">
                   Saved
@@ -441,7 +445,7 @@ export function Savings() {
 
             <div className="space-y-3">
               {!goal.completed && (
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <input
                     type="number"
                     placeholder="Add amount"

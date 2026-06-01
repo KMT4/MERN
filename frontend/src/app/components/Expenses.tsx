@@ -3,6 +3,12 @@ import { Plus, TrendingDown, Coffee, Home, Car, Zap, ShoppingCart, Trash2 } from
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getTransactions, createTransaction, deleteTransaction, Transaction } from '../../api/transactions';
 import { getMonthlySummary, getCategoryBreakdown, CategoryBreakdownItem } from '../../api/analytics';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
 
 const EXPENSE_CATEGORIES = [
   'Food', 'Housing', 'Transportation', 'Utilities', 'Entertainment', 'Healthcare', 'Shopping', 'Other',
@@ -126,14 +132,14 @@ export function Expenses() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-foreground mb-1">Expense Tracking</h2>
           <p className="text-muted-foreground">Monitor and categorize your spending</p>
         </div>
         <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+          onClick={() => setShowAddForm(true)}
+          className="flex w-full items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors sm:w-auto"
         >
           <Plus className="w-5 h-5" /> Add Expense
         </button>
@@ -172,11 +178,12 @@ export function Expenses() {
 
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
-      {/* Add Expense Form */}
-      {showAddForm && (
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h3 className="text-card-foreground mb-4">Add New Expense</h3>
-          <form onSubmit={handleAddExpense} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Expense</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddExpense} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-card-foreground mb-2">Description</label>
               <input
@@ -243,25 +250,25 @@ export function Expenses() {
               />
               <label htmlFor="expense-recurring" className="text-card-foreground">Recurring expense</label>
             </div>
-            <div className="md:col-span-2 flex gap-3">
+            <div className="flex flex-col-reverse gap-3 sm:col-span-2 sm:flex-row">
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                className="w-full bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 sm:w-auto"
               >
                 {loading ? 'Saving...' : 'Save Expense'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90 transition-colors"
+                className="w-full bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90 transition-colors sm:w-auto"
               >
                 Cancel
               </button>
             </div>
           </form>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Category Breakdown */}
       <div className="bg-card border border-border rounded-lg p-6">
@@ -339,13 +346,13 @@ export function Expenses() {
           {expenses.slice(0, 20).map((expense) => (
             <div
               key={expense._id}
-              className="flex items-center justify-between p-3 hover:bg-accent rounded-lg transition-colors"
+              className="flex flex-col gap-3 p-3 hover:bg-accent rounded-lg transition-colors sm:flex-row sm:items-center sm:justify-between"
             >
-              <div className="flex items-center gap-4">
+              <div className="flex min-w-0 items-center gap-4">
                 <div className="w-10 h-10 bg-chart-1/20 rounded-full flex items-center justify-center">
                   <TrendingDown className="w-5 h-5 text-chart-1" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-card-foreground">{expense.description}</p>
                   <p className="text-sm text-muted-foreground">
                     {expense.category} • {new Date(expense.date).toLocaleDateString()}
@@ -353,7 +360,7 @@ export function Expenses() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-3 sm:justify-end">
                 <p className="text-card-foreground font-semibold">
                   -${expense.amount.toLocaleString()}
                 </p>
