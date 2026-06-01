@@ -7,6 +7,10 @@ import {
   RefreshCw,
   Trash2,
   Pencil,
+  WalletCards,
+  Activity,
+  Gauge,
+  ShieldAlert,
 } from "lucide-react";
 import {
   getBudgetStatus,
@@ -34,18 +38,96 @@ const CATEGORIES = [
   "Other",
 ];
 
+function cn(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
+
+function formatCurrency(value: number) {
+  return `$${value.toLocaleString()}`;
+}
+
+function KpiCard({
+  label,
+  value,
+  helper,
+  icon: Icon,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  helper: string;
+  icon: any;
+  tone?: "green" | "red" | "amber" | "blue" | "neutral";
+}) {
+  const toneClass = {
+    green: "bg-emerald-500/10 text-emerald-500 ring-emerald-500/15",
+    red: "bg-red-500/10 text-red-500 ring-red-500/15",
+    amber: "bg-amber-500/10 text-amber-500 ring-amber-500/15",
+    blue: "bg-blue-500/10 text-blue-500 ring-blue-500/15",
+    neutral: "bg-primary/10 text-primary ring-primary/15",
+  };
+
+  return (
+    <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm transition-all hover:border-primary/25 hover:shadow-md">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[13px] font-medium text-muted-foreground">
+            {label}
+          </p>
+
+          <h3 className="mt-2 truncate text-xl font-semibold tracking-tight text-card-foreground md:text-2xl">
+            {value}
+          </h3>
+        </div>
+
+        <div
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1",
+            toneClass[tone],
+          )}
+        >
+          <Icon className="h-4 w-4" />
+        </div>
+      </div>
+
+      <p className="mt-3 truncate text-xs text-muted-foreground">{helper}</p>
+    </div>
+  );
+}
+
+function BudgetSkeleton() {
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {[1, 2, 3].map((item) => (
+          <div
+            key={item}
+            className="h-28 animate-pulse rounded-2xl border border-border bg-card"
+          />
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {[1, 2, 3, 4].map((item) => (
+          <div
+            key={item}
+            className="h-56 animate-pulse rounded-2xl border border-border bg-card"
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function Budgets() {
-  // Data
   const [budgets, setBudgets] = useState<BudgetStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Summary
   const [totalBudget, setTotalBudget] = useState(0);
   const [totalSpent, setTotalSpent] = useState(0);
   const [alertCount, setAlertCount] = useState(0);
 
-  // Create form
   const [showAddForm, setShowAddForm] = useState(false);
   const [newBudget, setNewBudget] = useState({
     category: "Food",
@@ -54,7 +136,6 @@ export function Budgets() {
     alertThreshold: "80",
   });
 
-  // Edit state
   const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     category: "Food",
@@ -63,15 +144,16 @@ export function Budgets() {
     alertThreshold: "80",
   });
 
-  // Fetch data
   const fetchData = async () => {
     setLoading(true);
     setError("");
+
     try {
       const [statusRes, alertsRes] = await Promise.all([
         getBudgetStatus(),
         getBudgetAlerts(),
       ]);
+
       setBudgets(statusRes);
       setTotalBudget(statusRes.reduce((sum, b) => sum + b.limit, 0));
       setTotalSpent(statusRes.reduce((sum, b) => sum + b.spent, 0));
@@ -87,12 +169,14 @@ export function Budgets() {
     fetchData();
   }, []);
 
-  // Create budget handler
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+
     const limit = parseFloat(newBudget.limit);
     if (!limit || limit <= 0) return;
+
     setLoading(true);
+
     try {
       await createBudget({
         category: newBudget.category,
@@ -100,12 +184,14 @@ export function Budgets() {
         month: newBudget.month,
         alertThreshold: parseFloat(newBudget.alertThreshold) / 100 || 0.8,
       });
+
       setNewBudget({
         category: "Food",
         limit: "",
         month: new Date().toISOString().slice(0, 7),
         alertThreshold: "80",
       });
+
       setShowAddForm(false);
       fetchData();
     } catch (err: any) {
@@ -115,7 +201,6 @@ export function Budgets() {
     }
   };
 
-  // Start editing a budget
   const startEdit = (budget: BudgetStatus) => {
     setEditingBudgetId(budget._id!);
     setEditForm({
@@ -126,24 +211,27 @@ export function Budgets() {
     });
   };
 
-  // Cancel edit
   const cancelEdit = () => {
     setEditingBudgetId(null);
   };
 
-  // Save edit
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!editingBudgetId) return;
+
     const limit = parseFloat(editForm.limit);
     if (!limit || limit <= 0) return;
+
     setLoading(true);
+
     try {
       await updateBudget(editingBudgetId, {
         category: editForm.category,
         limit,
         alertThreshold: parseFloat(editForm.alertThreshold) / 100 || 0.8,
       });
+
       setEditingBudgetId(null);
       fetchData();
     } catch (err: any) {
@@ -153,10 +241,11 @@ export function Budgets() {
     }
   };
 
-  // Delete budget
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this budget? This action cannot be undone.")) return;
+
     setLoading(true);
+
     try {
       await deleteBudget(id);
       fetchData();
@@ -167,355 +256,518 @@ export function Budgets() {
     }
   };
 
+  const usagePercentage =
+    totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+
+  const remainingBudget = totalBudget - totalSpent;
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-5">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
         <div>
-          <h2 className="text-foreground mb-1">Budget Management</h2>
-          <p className="text-muted-foreground">
-            Set spending limits and track progress
+          <div className="mb-1 flex items-center gap-2">
+            <Target className="h-4 w-4 text-primary" />
+            <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Budgets
+            </span>
+          </div>
+
+          <h2 className="text-xl font-semibold tracking-tight text-foreground md:text-2xl">
+            Budget Management
+          </h2>
+
+          <p className="mt-1 text-sm text-muted-foreground">
+            Set category limits, monitor usage and catch overspending early.
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
+
+        <div className="flex gap-2">
           <button
             onClick={fetchData}
             disabled={loading}
-            className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-accent disabled:opacity-50"
           >
-            <RefreshCw className="w-4 h-4" /> Refresh
+            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+            Refresh
           </button>
+
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-primary px-3 text-xs font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-90"
           >
-            <Plus className="w-5 h-5" /> Create Budget
+            <Plus className="h-3.5 w-3.5" />
+            Create Budget
           </button>
         </div>
       </div>
 
-      {error && <p className="text-red-500 text-sm">{error}</p>}
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-muted-foreground">Total Budget</span>
-            <Target className="w-5 h-5 text-chart-4" />
-          </div>
-          <div className="text-2xl font-semibold text-card-foreground">
-            ${totalBudget.toLocaleString()}
-          </div>
+      {error && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-500">
+          {error}
         </div>
+      )}
 
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-muted-foreground">Total Spent</span>
-            <Target className="w-5 h-5 text-chart-1" />
-          </div>
-          <div className="text-2xl font-semibold text-card-foreground">
-            ${totalSpent.toLocaleString()}
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            {totalBudget > 0
-              ? `${((totalSpent / totalBudget) * 100).toFixed(0)}% of budget`
-              : "N/A"}
-          </p>
-        </div>
+      {loading && budgets.length === 0 ? (
+        <BudgetSkeleton />
+      ) : (
+        <>
+          <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <KpiCard
+              label="Total Budget"
+              value={formatCurrency(totalBudget)}
+              helper={`${budgets.length} active budget${
+                budgets.length === 1 ? "" : "s"
+              }`}
+              icon={WalletCards}
+              tone="blue"
+            />
 
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-muted-foreground">Alerts</span>
-            <AlertCircle className="w-5 h-5 text-destructive" />
-          </div>
-          <div className="text-2xl font-semibold text-card-foreground">
-            {alertCount}
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            {alertCount > 0 ? "Budgets near or exceeded" : "All budgets on track"}
-          </p>
-        </div>
-      </div>
+            <KpiCard
+              label="Total Spent"
+              value={formatCurrency(totalSpent)}
+              helper={
+                totalBudget > 0
+                  ? `${usagePercentage.toFixed(0)}% of total budget`
+                  : "No budget set"
+              }
+              icon={Gauge}
+              tone={
+                usagePercentage >= 100
+                  ? "red"
+                  : usagePercentage >= 80
+                    ? "amber"
+                    : "green"
+              }
+            />
 
-      <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Create New Budget</DialogTitle>
-          </DialogHeader>
-          <form
-            onSubmit={handleCreate}
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+            <KpiCard
+              label="Alerts"
+              value={alertCount.toLocaleString()}
+              helper={
+                alertCount > 0
+                  ? "Budgets need attention"
+                  : `Remaining ${formatCurrency(Math.max(remainingBudget, 0))}`
+              }
+              icon={ShieldAlert}
+              tone={alertCount > 0 ? "red" : "green"}
+            />
+          </section>
+
+          <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Create New Budget</DialogTitle>
+              </DialogHeader>
+
+              <form
+                onSubmit={handleCreate}
+                className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+              >
+                <div>
+                  <label className="block text-card-foreground mb-2">
+                    Category
+                  </label>
+                  <select
+                    className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                    value={newBudget.category}
+                    onChange={(e) =>
+                      setNewBudget({
+                        ...newBudget,
+                        category: e.target.value,
+                      })
+                    }
+                  >
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-card-foreground mb-2">
+                    Budget Limit ($)
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                    placeholder="0.00"
+                    value={newBudget.limit}
+                    onChange={(e) =>
+                      setNewBudget({ ...newBudget, limit: e.target.value })
+                    }
+                    required
+                    min="0.01"
+                    step="0.01"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-card-foreground mb-2">
+                    Month
+                  </label>
+                  <input
+                    type="month"
+                    className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                    value={newBudget.month}
+                    onChange={(e) =>
+                      setNewBudget({ ...newBudget, month: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-card-foreground mb-2">
+                    Alert Threshold (%)
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                    placeholder="80"
+                    value={newBudget.alertThreshold}
+                    onChange={(e) =>
+                      setNewBudget({
+                        ...newBudget,
+                        alertThreshold: e.target.value,
+                      })
+                    }
+                    min="1"
+                    max="100"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Alert when spending reaches this % of limit
+                  </p>
+                </div>
+
+                <div className="flex flex-col-reverse gap-3 sm:col-span-2 sm:flex-row">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 sm:w-auto"
+                  >
+                    {loading ? "Saving..." : "Create Budget"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowAddForm(false)}
+                    className="w-full bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90 transition-colors sm:w-auto"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog
+            open={editingBudgetId !== null}
+            onOpenChange={(open) => {
+              if (!open) cancelEdit();
+            }}
           >
-            <div>
-              <label className="block text-card-foreground mb-2">Category</label>
-              <select
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
-                value={newBudget.category}
-                onChange={(e) =>
-                  setNewBudget({ ...newBudget, category: e.target.value })
-                }
-              >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-card-foreground mb-2">Budget Limit ($)</label>
-              <input
-                type="number"
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
-                placeholder="0.00"
-                value={newBudget.limit}
-                onChange={(e) =>
-                  setNewBudget({ ...newBudget, limit: e.target.value })
-                }
-                required
-                min="0.01"
-                step="0.01"
-              />
-            </div>
-            <div>
-              <label className="block text-card-foreground mb-2">Month</label>
-              <input
-                type="month"
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
-                value={newBudget.month}
-                onChange={(e) =>
-                  setNewBudget({ ...newBudget, month: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <label className="block text-card-foreground mb-2">
-                Alert Threshold (%)
-              </label>
-              <input
-                type="number"
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
-                placeholder="80"
-                value={newBudget.alertThreshold}
-                onChange={(e) =>
-                  setNewBudget({ ...newBudget, alertThreshold: e.target.value })
-                }
-                min="1"
-                max="100"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Alert when spending reaches this % of limit
-              </p>
-            </div>
-            <div className="flex flex-col-reverse gap-3 sm:col-span-2 sm:flex-row">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 sm:w-auto"
-              >
-                {loading ? "Saving..." : "Create Budget"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAddForm(false)}
-                className="w-full bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90 transition-colors sm:w-auto"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Edit Budget</DialogTitle>
+              </DialogHeader>
 
-      <Dialog
-        open={editingBudgetId !== null}
-        onOpenChange={(open) => {
-          if (!open) cancelEdit();
-        }}
-      >
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Budget</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleUpdate} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-card-foreground mb-2">Category</label>
-              <select
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
-                value={editForm.category}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, category: e.target.value })
-                }
+              <form
+                onSubmit={handleUpdate}
+                className="grid grid-cols-1 gap-4 sm:grid-cols-2"
               >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-card-foreground mb-2">Budget Limit ($)</label>
-              <input
-                type="number"
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
-                value={editForm.limit}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, limit: e.target.value })
-                }
-                required
-                min="0.01"
-                step="0.01"
-              />
-            </div>
-            <div>
-              <label className="block text-card-foreground mb-2">
-                Alert Threshold (%)
-              </label>
-              <input
-                type="number"
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
-                value={editForm.alertThreshold}
-                onChange={(e) =>
-                  setEditForm({
-                    ...editForm,
-                    alertThreshold: e.target.value,
-                  })
-                }
-                min="1"
-                max="100"
-              />
-            </div>
-            <div className="flex flex-col-reverse gap-3 sm:col-span-2 sm:flex-row">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 sm:w-auto"
-              >
-                {loading ? "Saving..." : "Save Budget"}
-              </button>
-              <button
-                type="button"
-                onClick={cancelEdit}
-                className="w-full bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90 transition-colors sm:w-auto"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+                <div>
+                  <label className="block text-card-foreground mb-2">
+                    Category
+                  </label>
+                  <select
+                    className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                    value={editForm.category}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, category: e.target.value })
+                    }
+                  >
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
 
-      {/* Budget Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {budgets.map((budget) => {
-          const percentage =
-            budget.limit > 0 ? (budget.spent / budget.limit) * 100 : 0;
-          const isOverBudget = budget.exceeded;
-          const isNearLimit = budget.nearLimit;
-          const statusColor = isOverBudget
-            ? "var(--destructive)"
-            : isNearLimit
-            ? "var(--chart-4)"
-            : "var(--chart-2)";
-          const borderColor = isOverBudget
-            ? "border-destructive"
-            : isNearLimit
-            ? "border-chart-4"
-            : "border-border";
+                <div>
+                  <label className="block text-card-foreground mb-2">
+                    Budget Limit ($)
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                    value={editForm.limit}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, limit: e.target.value })
+                    }
+                    required
+                    min="0.01"
+                    step="0.01"
+                  />
+                </div>
 
-          return (
-            <div
-              key={budget._id}
-              className={`bg-card border ${borderColor} rounded-lg p-6`}
-            >
-                  {/* Card Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h4 className="text-card-foreground font-medium">
-                        {budget.category}
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        {budget.alertThreshold * 100}% alert threshold
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => startEdit(budget)}
-                        className="text-muted-foreground hover:text-primary transition-colors"
-                        title="Edit budget"
-                      >
-                        <Pencil className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(budget._id!)}
-                        className="text-muted-foreground hover:text-destructive transition-colors"
-                        title="Delete budget"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                      {isOverBudget ? (
-                        <AlertCircle className="w-6 h-6 text-destructive" />
-                      ) : (
-                        <CheckCircle className="w-6 h-6 text-chart-2" />
+                <div>
+                  <label className="block text-card-foreground mb-2">
+                    Alert Threshold (%)
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                    value={editForm.alertThreshold}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        alertThreshold: e.target.value,
+                      })
+                    }
+                    min="1"
+                    max="100"
+                  />
+                </div>
+
+                <div className="flex flex-col-reverse gap-3 sm:col-span-2 sm:flex-row">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 sm:w-auto"
+                  >
+                    {loading ? "Saving..." : "Save Budget"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={cancelEdit}
+                    className="w-full bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90 transition-colors sm:w-auto"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          <section className="rounded-2xl border border-border/80 bg-card shadow-sm">
+            <div className="flex flex-col justify-between gap-3 border-b border-border/80 p-4 sm:flex-row sm:items-center">
+              <div>
+                <h3 className="text-sm font-semibold text-card-foreground">
+                  Budget Categories
+                </h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Track spending limits and category-level progress.
+                </p>
+              </div>
+
+              <span className="w-fit rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                {budgets.length} budget{budgets.length === 1 ? "" : "s"}
+              </span>
+            </div>
+
+            {budgets.length === 0 ? (
+              <div className="p-4">
+                <div className="rounded-xl border border-dashed border-border bg-background/50 p-8 text-center">
+                  <Target className="mx-auto mb-2 h-7 w-7 text-muted-foreground" />
+                  <p className="text-sm font-medium text-card-foreground">
+                    No budgets created yet
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Create your first budget to start tracking spending limits.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
+                {budgets.map((budget) => {
+                  const percentage =
+                    budget.limit > 0 ? (budget.spent / budget.limit) * 100 : 0;
+
+                  const isOverBudget = budget.exceeded;
+                  const isNearLimit = budget.nearLimit;
+
+                  const status = isOverBudget
+                    ? "Exceeded"
+                    : isNearLimit
+                      ? "Near limit"
+                      : "On track";
+
+                  const statusStyle = isOverBudget
+                    ? "bg-red-500/10 text-red-500 ring-red-500/15"
+                    : isNearLimit
+                      ? "bg-amber-500/10 text-amber-500 ring-amber-500/15"
+                      : "bg-emerald-500/10 text-emerald-500 ring-emerald-500/15";
+
+                  const progressColor = isOverBudget
+                    ? "var(--destructive)"
+                    : isNearLimit
+                      ? "var(--chart-4)"
+                      : "var(--chart-2)";
+
+                  return (
+                    <article
+                      key={budget._id}
+                      className={cn(
+                        "rounded-2xl border bg-background/40 p-4 transition-all hover:shadow-md",
+                        isOverBudget
+                          ? "border-red-500/35"
+                          : isNearLimit
+                            ? "border-amber-500/35"
+                            : "border-border/80 hover:border-primary/25",
                       )}
-                    </div>
-                  </div>
+                    >
+                      <div className="mb-4 flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className="truncate text-sm font-semibold text-card-foreground">
+                              {budget.category}
+                            </h4>
 
-                  {/* Progress bar and info */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Spent</span>
-                      <span
-                        className={`font-semibold ${
-                          isOverBudget ? "text-destructive" : "text-card-foreground"
-                        }`}
-                      >
-                        ${budget.spent.toLocaleString()} / $
-                        {budget.limit.toLocaleString()}
-                      </span>
-                    </div>
+                            <span
+                              className={cn(
+                                "inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1",
+                                statusStyle,
+                              )}
+                            >
+                              {status}
+                            </span>
+                          </div>
 
-                    <div className="w-full bg-muted rounded-full h-3">
-                      <div
-                        className="h-3 rounded-full transition-all"
-                        style={{
-                          width: `${Math.min(percentage, 100)}%`,
-                          backgroundColor: statusColor,
-                        }}
-                      />
-                    </div>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {(budget.alertThreshold * 100).toFixed(0)}% alert
+                            threshold
+                          </p>
+                        </div>
 
-                    <div className="flex items-center justify-between text-sm pt-2">
-                      <span className="text-muted-foreground">
-                        {isOverBudget ? "Over budget" : "Remaining"}
-                      </span>
-                      <span
-                        className={`font-semibold ${
-                          isOverBudget ? "text-destructive" : "text-chart-2"
-                        }`}
-                      >
-                        {isOverBudget ? "+" : ""}$
-                        {Math.abs(budget.remaining).toLocaleString()}
-                      </span>
-                    </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            onClick={() => startEdit(budget)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                            title="Edit budget"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
 
-                    {isOverBudget && (
-                      <div className="mt-3 p-3 rounded-lg bg-destructive/10">
-                        <p className="text-sm text-destructive">
-                          You have exceeded this budget by $
-                          {Math.abs(budget.remaining).toLocaleString()}
-                        </p>
+                          <button
+                            onClick={() => handleDelete(budget._id!)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-500"
+                            title="Delete budget"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
-                    )}
-                    {!isOverBudget && isNearLimit && (
-                      <div className="mt-3 p-3 rounded-lg bg-chart-4/10">
-                        <p className="text-sm text-chart-4">
-                          Approaching limit — you have used{" "}
-                          {percentage.toFixed(0)}% of your budget.
-                        </p>
+
+                      <div className="space-y-3">
+                        <div className="flex items-end justify-between gap-3">
+                          <div>
+                            <p className="text-xs text-muted-foreground">
+                              Spent
+                            </p>
+
+                            <p
+                              className={cn(
+                                "mt-1 text-lg font-semibold tracking-tight",
+                                isOverBudget
+                                  ? "text-red-500"
+                                  : "text-card-foreground",
+                              )}
+                            >
+                              {formatCurrency(budget.spent)}
+                            </p>
+                          </div>
+
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">
+                              Limit
+                            </p>
+
+                            <p className="mt-1 text-sm font-medium text-card-foreground">
+                              {formatCurrency(budget.limit)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="mb-1.5 flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">
+                              Progress
+                            </span>
+
+                            <span
+                              className={cn(
+                                "font-semibold",
+                                isOverBudget
+                                  ? "text-red-500"
+                                  : isNearLimit
+                                    ? "text-amber-500"
+                                    : "text-emerald-500",
+                              )}
+                            >
+                              {percentage.toFixed(0)}%
+                            </span>
+                          </div>
+
+                          <div className="h-2 overflow-hidden rounded-full bg-muted">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{
+                                width: `${Math.min(percentage, 100)}%`,
+                                backgroundColor: progressColor,
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            {isOverBudget ? (
+                              <AlertCircle className="h-4 w-4 text-red-500" />
+                            ) : (
+                              <CheckCircle className="h-4 w-4 text-emerald-500" />
+                            )}
+
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {isOverBudget ? "Over budget" : "Remaining"}
+                            </span>
+                          </div>
+
+                          <span
+                            className={cn(
+                              "text-sm font-semibold",
+                              isOverBudget ? "text-red-500" : "text-emerald-500",
+                            )}
+                          >
+                            {isOverBudget ? "+" : ""}
+                            {formatCurrency(Math.abs(budget.remaining))}
+                          </span>
+                        </div>
+
+                        {isOverBudget && (
+                          <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2">
+                            <p className="text-xs leading-5 text-red-500">
+                              You exceeded this budget by{" "}
+                              {formatCurrency(Math.abs(budget.remaining))}.
+                            </p>
+                          </div>
+                        )}
+
+                        {!isOverBudget && isNearLimit && (
+                          <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2">
+                            <p className="text-xs leading-5 text-amber-500">
+                              Approaching limit — you have used{" "}
+                              {percentage.toFixed(0)}% of this budget.
+                            </p>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-            </div>
-          );
-        })}
-      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </>
+      )}
     </div>
   );
 }

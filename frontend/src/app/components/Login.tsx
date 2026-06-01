@@ -139,7 +139,7 @@ export function Login({ onLogin }: LoginProps) {
                     <input
                       type="text"
                       className={inputClass}
-                      placeholder="Dominic Terngu"
+                      placeholder="Geremy Clarkson"
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
