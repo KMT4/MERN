@@ -204,7 +204,7 @@ export function Dashboard() {
               { label: "Total Balance", icon: DollarSign, value: `${getCurrencySymbol()}${balance.toLocaleString()}`, sub: "All-time net worth", iconColor: "text-emerald-500" },
               { label: "Monthly Income", icon: TrendingUp, value: `${getCurrencySymbol()}${monthlyIncome.toLocaleString()}`, sub: "This month", iconColor: "text-emerald-500" },
               { label: "Monthly Expenses", icon: TrendingDown, value: `${getCurrencySymbol()}${monthlyExpenses.toLocaleString()}`, sub: monthlyIncome > 0 ? `${((monthlyExpenses / monthlyIncome) * 100).toFixed(0)}% of income` : "N/A", iconColor: "text-red-500" },
-              { label: "Savings Rate", icon: Target, value: `${getCurrencySymbol()}${savingsRate.toFixed(0)}%`, sub: savingsStatus, subColor: savingsColor, iconColor: "text-amber-500" },
+              { label: "Savings Rate", icon: Target, value: `${savingsRate.toFixed(0)}%`, sub: savingsStatus, subColor: savingsColor, iconColor: "text-amber-500" },
             ].map((card, idx) => {
               const Icon = card.icon;
               return (
@@ -216,7 +216,7 @@ export function Dashboard() {
                     <span className="text-sm font-medium text-muted-foreground">
                       {card.label}
                     </span>
-                    <Icon className={`w-5 h-5 ${getCurrencySymbol()}${card.iconColor}`} />
+                    <Icon className={`w-5 h-5 ${card.iconColor}`} />
                   </div>
                   <div className="text-2xl font-bold text-foreground tracking-tight">
                     {card.value}
@@ -277,6 +277,7 @@ export function Dashboard() {
               </ResponsiveContainer>
             </div>
 
+            {/* Donut Chart – Spending by Category */}
             <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
               <h3 className="text-lg font-medium text-foreground mb-6">
                 Spending by Category
@@ -284,30 +285,40 @@ export function Dashboard() {
               {categoryData.length === 0 ? (
                 <p className="text-muted-foreground text-center py-12">No expenses yet</p>
               ) : (
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={350}>
                   <PieChart>
                     <Pie
                       data={categoryData}
                       cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) =>
-                        `${name} ${(percent * 100).toFixed(0)}%`
-                      }
-                      outerRadius={80}
+                      cy="45%"
+                      innerRadius={60}
+                      outerRadius={90}
+                      paddingAngle={2}
                       dataKey="value"
+                      stroke="none"
                     >
                       {categoryData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip
+                      formatter={(value: number) => `${getCurrencySymbol()}${value.toLocaleString()}`}
                       contentStyle={{
                         backgroundColor: "#fff",
                         border: "1px solid #e5e7eb",
                         borderRadius: "12px",
                         boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
                       }}
+                    />
+                    <Legend
+                      layout="horizontal"
+                      verticalAlign="bottom"
+                      align="center"
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={(value) => (
+                        <span style={{ fontSize: "12px", color: "var(--foreground)" }}>{value}</span>
+                      )}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -417,7 +428,7 @@ export function Dashboard() {
                           : "text-foreground"
                       }`}
                     >
-                      {txn.type === "income" ? "+" : "-"}$
+                      {txn.type === "income" ? "+" : "-"}{getCurrencySymbol()}
                       {txn.amount.toLocaleString()}
                     </p>
                   </div>
