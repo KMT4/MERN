@@ -3,7 +3,7 @@ import { Plus, TrendingDown, Coffee, Home, Car, Zap, ShoppingCart, Trash2 } from
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getTransactions, createTransaction, deleteTransaction, Transaction } from '../../api/transactions';
 import { getMonthlySummary, getCategoryBreakdown, CategoryBreakdownItem } from '../../api/analytics';
-
+import {getCurrencySymbol} from "../../utils/currency"
 const EXPENSE_CATEGORIES = [
   'Food', 'Housing', 'Transportation', 'Utilities', 'Entertainment', 'Healthcare', 'Shopping', 'Other',
 ];
@@ -125,47 +125,52 @@ export function Expenses() {
   const monthlyChartData = getMonthlySpending(expenses);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-foreground mb-1">Expense Tracking</h2>
-          <p className="text-muted-foreground">Monitor and categorize your spending</p>
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+            Expense Tracking
+          </h2>
+          <p className="text-muted-foreground mt-0.5">
+            Monitor and categorize your spending
+          </p>
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+          className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
         >
-          <Plus className="w-5 h-5" /> Add Expense
+          <Plus className="w-4 h-4" /> Add Expense
         </button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-card border border-border rounded-lg p-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-muted-foreground">Total This Month</span>
-            <TrendingDown className="w-5 h-5 text-chart-1" />
+            <span className="text-sm font-medium text-muted-foreground">Total This Month</span>
+            <TrendingDown className="w-5 h-5 text-red-500" />
           </div>
-          <div className="text-2xl font-semibold text-card-foreground">
-            ${monthlyExpenseTotal.toLocaleString()}
+          <div className="text-2xl font-bold text-foreground tracking-tight">
+          {getCurrencySymbol()}{monthlyExpenseTotal.toLocaleString()}
           </div>
         </div>
-        <div className="bg-card border border-border rounded-lg p-6">
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-muted-foreground">Average Daily</span>
-            <TrendingDown className="w-5 h-5 text-chart-3" />
+            <span className="text-sm font-medium text-muted-foreground">Average Daily</span>
+            <TrendingDown className="w-5 h-5 text-blue-500" />
           </div>
-          <div className="text-2xl font-semibold text-card-foreground">
-            ${avgDailySpending.toFixed(0)}
+          <div className="text-2xl font-bold text-foreground tracking-tight">
+          {getCurrencySymbol()}{avgDailySpending.toFixed(0)}
           </div>
         </div>
-        <div className="bg-card border border-border rounded-lg p-6">
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-muted-foreground">Recurring</span>
-            <TrendingDown className="w-5 h-5 text-chart-4" />
+            <span className="text-sm font-medium text-muted-foreground">Recurring</span>
+            <TrendingDown className="w-5 h-5 text-amber-500" />
           </div>
-          <div className="text-2xl font-semibold text-card-foreground">
-            ${recurringTotal.toLocaleString()}/mo
+          <div className="text-2xl font-bold text-foreground tracking-tight">
+          {getCurrencySymbol()}{recurringTotal.toLocaleString()}/mo
           </div>
         </div>
       </div>
@@ -174,14 +179,16 @@ export function Expenses() {
 
       {/* Add Expense Form */}
       {showAddForm && (
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h3 className="text-card-foreground mb-4">Add New Expense</h3>
+        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+          <h3 className="text-lg font-medium text-foreground mb-5">Add New Expense</h3>
           <form onSubmit={handleAddExpense} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-card-foreground mb-2">Description</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Description
+              </label>
               <input
                 type="text"
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 placeholder="e.g., Grocery Shopping"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -189,10 +196,10 @@ export function Expenses() {
               />
             </div>
             <div>
-              <label className="block text-card-foreground mb-2">Amount</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Amount</label>
               <input
                 type="number"
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 placeholder="0.00"
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
@@ -202,9 +209,9 @@ export function Expenses() {
               />
             </div>
             <div>
-              <label className="block text-card-foreground mb-2">Category</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Category</label>
               <select
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
               >
@@ -214,20 +221,22 @@ export function Expenses() {
               </select>
             </div>
             <div>
-              <label className="block text-card-foreground mb-2">Date</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Date</label>
               <input
                 type="date"
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
                 required
               />
             </div>
             <div>
-              <label className="block text-card-foreground mb-2">Payment Method</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">
+                Payment Method
+              </label>
               <input
                 type="text"
-                className="w-full px-4 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 placeholder="e.g., Credit Card"
                 value={form.paymentMethod}
                 onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
@@ -237,24 +246,26 @@ export function Expenses() {
               <input
                 type="checkbox"
                 id="expense-recurring"
-                className="w-4 h-4 rounded border-border"
+                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20"
                 checked={form.isRecurring}
                 onChange={(e) => setForm({ ...form, isRecurring: e.target.checked })}
               />
-              <label htmlFor="expense-recurring" className="text-card-foreground">Recurring expense</label>
+              <label htmlFor="expense-recurring" className="text-sm text-foreground">
+                Recurring expense
+              </label>
             </div>
-            <div className="md:col-span-2 flex gap-3">
+            <div className="md:col-span-2 flex gap-3 pt-2">
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                className="inline-flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
               >
                 {loading ? 'Saving...' : 'Save Expense'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="bg-secondary text-secondary-foreground px-6 py-2 rounded-lg hover:bg-secondary/90 transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 border border-gray-200 bg-white text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
@@ -264,105 +275,122 @@ export function Expenses() {
       )}
 
       {/* Category Breakdown */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <h3 className="text-card-foreground mb-4">Spending by Category</h3>
-        {categoryBreakdown.length === 0 && !loading && (
-          <p className="text-muted-foreground">No expenses recorded yet.</p>
-        )}
-        <div className="space-y-4">
-          {categoryBreakdown.map((cat) => {
-            const Icon = categoryIcons[cat._id] || ShoppingCart;
-            const color = categoryColors[cat._id] || '#6B7280';
-            const percentage = monthlyExpenseTotal > 0 ? (cat.total / monthlyExpenseTotal) * 100 : 0;
-            return (
-              <div key={cat._id}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: `${color}20` }}
-                    >
-                      <Icon className="w-5 h-5" style={{ color }} />
+      <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+        <h3 className="text-lg font-medium text-foreground mb-5">
+          Spending by Category
+        </h3>
+        {categoryBreakdown.length === 0 && !loading ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500 text-sm">No expenses recorded yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {categoryBreakdown.map((cat) => {
+              const Icon = categoryIcons[cat._id] || ShoppingCart;
+              const color = categoryColors[cat._id] || '#6B7280';
+              const percentage =
+                monthlyExpenseTotal > 0 ? (cat.total / monthlyExpenseTotal) * 100 : 0;
+              return (
+                <div key={cat._id}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: `${color}20` }}
+                      >
+                        <Icon className="w-4 h-4" style={{ color }} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{cat._id}</p>
+                        <p className="text-xs text-muted-foreground">
+                        {getCurrencySymbol()}{cat.total.toLocaleString()} spent
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-card-foreground font-medium">{cat._id}</p>
-                      <p className="text-sm text-muted-foreground">
-                        ${cat.total.toLocaleString()} spent
-                      </p>
-                    </div>
+                    <p className="text-sm font-semibold text-emerald-600">
+                      {percentage.toFixed(0)}%
+                    </p>
                   </div>
-                  <p className="font-semibold text-chart-2">{percentage.toFixed(0)}%</p>
+                  <div className="w-full bg-gray-100 rounded-full h-1.5">
+                    <div
+                      className="h-1.5 rounded-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(percentage, 100)}%`,
+                        backgroundColor: color,
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div
-                    className="h-2 rounded-full"
-                    style={{
-                      width: `${Math.min(percentage, 100)}%`,
-                      backgroundColor: color,
-                    }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Monthly Spending Trend Chart */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <h3 className="text-card-foreground mb-4">Monthly Spending Trend</h3>
+      <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+        <h3 className="text-lg font-medium text-foreground mb-5">
+          Monthly Spending Trend
+        </h3>
         <ResponsiveContainer width="100%" height={250}>
           <BarChart data={monthlyChartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis dataKey="month" stroke="var(--muted-foreground)" />
-            <YAxis stroke="var(--muted-foreground)" />
+            <XAxis dataKey="month" stroke="var(--muted-foreground)" fontSize={12} />
+            <YAxis stroke="var(--muted-foreground)" fontSize={12} />
             <Tooltip
               contentStyle={{
-                backgroundColor: 'var(--card)',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
+                backgroundColor: '#fff',
+                border: '1px solid #e5e7eb',
+                borderRadius: '12px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
               }}
             />
-            <Bar dataKey="amount" fill="var(--chart-1)" />
+            <Bar dataKey="amount" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
       {/* Recent Expenses List */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <h3 className="text-card-foreground mb-4">Recent Expenses</h3>
-        {loading && <p className="text-muted-foreground">Loading...</p>}
+      <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+        <h3 className="text-lg font-medium text-foreground mb-5">
+          Recent Expenses
+        </h3>
+        {loading && <p className="text-muted-foreground text-sm py-4">Loading...</p>}
         {!loading && expenses.length === 0 && (
-          <p className="text-muted-foreground">No expenses found.</p>
+          <div className="text-center py-8">
+            <p className="text-gray-500 text-sm">No expenses found.</p>
+          </div>
         )}
-        <div className="space-y-3">
+        <div className="space-y-2">
           {expenses.slice(0, 20).map((expense) => (
             <div
               key={expense._id}
-              className="flex items-center justify-between p-3 hover:bg-accent rounded-lg transition-colors"
+              className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors"
             >
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-chart-1/20 rounded-full flex items-center justify-center">
-                  <TrendingDown className="w-5 h-5 text-chart-1" />
+                <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center">
+                  <TrendingDown className="w-4 h-4 text-red-500" />
                 </div>
                 <div>
-                  <p className="text-card-foreground">{expense.description}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm font-medium text-foreground">
+                    {expense.description}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
                     {expense.category} • {new Date(expense.date).toLocaleDateString()}
                     {expense.isRecurring && ' • Recurring'}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <p className="text-card-foreground font-semibold">
-                  -${expense.amount.toLocaleString()}
+                <p className="text-sm font-semibold text-red-600">
+                  -{getCurrencySymbol()}{expense.amount.toLocaleString()}
                 </p>
                 <button
                   onClick={() => handleDelete(expense._id)}
-                  className="text-muted-foreground hover:text-destructive transition-colors"
+                  className="text-gray-400 hover:text-red-500 transition-colors"
                   title="Delete"
                 >
-                  <Trash2 className="w-5 h-5" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>

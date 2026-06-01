@@ -9,6 +9,7 @@ import { Savings } from './components/Savings';
 import { Debts } from './components/Debts';
 import { Reports } from './components/Reports';
 import { Settings } from './components/Settings';
+import { getUserProfile } from '../api/user';
 
 export default function App() {
   
@@ -26,8 +27,11 @@ export default function App() {
     setIsAuthenticated(false);
     setActiveView('dashboard');
   };
+  
+  
 
   if (!isAuthenticated) {
+    
     return <Login onLogin={handleLogin} />;
   }
 

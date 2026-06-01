@@ -11,6 +11,7 @@ import { getTransactions, Transaction } from "../../api/transactions";
 import { getInsights } from "../../api/ai";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import {getCurrencySymbol} from "../../utils/currency"
 
 const categoryColors: Record<string, string> = {
   Housing: "var(--chart-1)",
@@ -31,7 +32,7 @@ const CHART_COLORS = [
 ];
 
 const formatCurrency = (n: number) =>
-  "$" + n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  getCurrencySymbol() + n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
 export function Reports() {
   const reportRef = useRef<HTMLDivElement>(null);
@@ -164,38 +165,49 @@ export function Reports() {
   const printReport = () => window.print();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-foreground mb-1">Financial Reports</h2>
-          <p className="text-muted-foreground">Comprehensive analysis of your financial data</p>
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+            Financial Reports
+          </h2>
+          <p className="text-muted-foreground mt-0.5">
+            Comprehensive analysis of your financial data
+          </p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={exportPDF} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
-            <Download className="w-5 h-5" /> Export PDF
+        <div className="flex gap-3">
+          <button
+            onClick={exportPDF}
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
+          >
+            <Download className="w-4 h-4" /> Export PDF
           </button>
-          <button onClick={printReport} className="flex items-center gap-2 bg-secondary text-secondary-foreground px-4 py-2 rounded-lg hover:bg-secondary/90 transition-colors">
-            <Printer className="w-5 h-5" /> Print
+          <button
+            onClick={printReport}
+            className="inline-flex items-center gap-2 border border-gray-200 bg-white text-gray-700 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+          >
+            <Printer className="w-4 h-4" /> Print
           </button>
         </div>
       </div>
 
       {/* Date Range Filter */}
-      <div className="flex flex-wrap items-center gap-4 bg-card border border-border rounded-lg p-4">
+      <div className="flex flex-wrap items-center gap-4 bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
         <div className="flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-muted-foreground" />
+          <Calendar className="w-5 h-5 text-gray-400" />
           <input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="px-3 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
-          <span className="text-muted-foreground">to</span>
+          <span className="text-sm text-muted-foreground">to</span>
           <input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="px-3 py-2 bg-input-background rounded-lg border border-border focus:ring-2 focus:ring-ring outline-none"
+            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
         <span className="text-xs text-muted-foreground ml-2">
@@ -205,76 +217,105 @@ export function Reports() {
 
       {error && <p className="text-red-500 text-sm">{error}</p>}
       {loading ? (
-        <p className="text-muted-foreground">Loading transactions...</p>
+        <p className="text-muted-foreground text-sm py-4">Loading transactions...</p>
       ) : (
-        <div ref={reportRef} className="space-y-6">
+        <div ref={reportRef} className="space-y-8">
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-card border border-border rounded-lg p-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-muted-foreground">Total Income</span>
-                <TrendingUp className="w-5 h-5 text-chart-2" />
+                <span className="text-sm font-medium text-muted-foreground">Total Income</span>
+                <TrendingUp className="w-5 h-5 text-emerald-500" />
               </div>
-              <div className="text-2xl font-semibold text-card-foreground">{formatCurrency(totalIncome)}</div>
+              <div className="text-2xl font-bold text-foreground tracking-tight">
+                {formatCurrency(totalIncome)}
+              </div>
             </div>
-            <div className="bg-card border border-border rounded-lg p-6">
+            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-muted-foreground">Total Expenses</span>
-                <TrendingDown className="w-5 h-5 text-chart-1" />
+                <span className="text-sm font-medium text-muted-foreground">Total Expenses</span>
+                <TrendingDown className="w-5 h-5 text-red-500" />
               </div>
-              <div className="text-2xl font-semibold text-card-foreground">{formatCurrency(totalExpenses)}</div>
+              <div className="text-2xl font-bold text-foreground tracking-tight">
+                {formatCurrency(totalExpenses)}
+              </div>
             </div>
-            <div className="bg-card border border-border rounded-lg p-6">
+            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-muted-foreground">Net Savings</span>
-                <DollarSign className="w-5 h-5 text-chart-4" />
+                <span className="text-sm font-medium text-muted-foreground">Net Savings</span>
+                <DollarSign className="w-5 h-5 text-blue-500" />
               </div>
-              <div className="text-2xl font-semibold text-card-foreground">{formatCurrency(netSavings)}</div>
+              <div className="text-2xl font-bold text-foreground tracking-tight">
+                {formatCurrency(netSavings)}
+              </div>
             </div>
-            <div className="bg-card border border-border rounded-lg p-6">
+            <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-muted-foreground">Savings Rate</span>
-                <Calendar className="w-5 h-5 text-chart-3" />
+                <span className="text-sm font-medium text-muted-foreground">Savings Rate</span>
+                <Calendar className="w-5 h-5 text-amber-500" />
               </div>
-              <div className="text-2xl font-semibold text-card-foreground">{savingsRate.toFixed(1)}%</div>
+              <div className="text-2xl font-bold text-foreground tracking-tight">
+                {savingsRate.toFixed(1)}%
+              </div>
             </div>
           </div>
 
           {/* Income vs Expenses Bar Chart */}
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="text-card-foreground mb-4">Income vs Expenses</h3>
+          <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+            <h3 className="text-lg font-medium text-foreground mb-5">Income vs Expenses</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={monthlyTrend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="month" stroke="var(--muted-foreground)" />
-                <YAxis stroke="var(--muted-foreground)" />
-                <Tooltip contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px" }} />
+                <XAxis dataKey="month" stroke="var(--muted-foreground)" fontSize={12} />
+                <YAxis stroke="var(--muted-foreground)" fontSize={12} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#fff",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "12px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                  }}
+                />
                 <Legend />
-                <Bar dataKey="income" fill="var(--chart-2)" name="Income" />
-                <Bar dataKey="expenses" fill="var(--chart-1)" name="Expenses" />
+                <Bar dataKey="income" fill="var(--chart-2)" name="Income" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expenses" fill="var(--chart-1)" name="Expenses" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
           {/* Net Cash Flow & Income Sources */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-card border border-border rounded-lg p-6">
-              <h3 className="text-card-foreground mb-4">Net Cash Flow</h3>
+            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+              <h3 className="text-lg font-medium text-foreground mb-5">Net Cash Flow</h3>
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={cashFlow}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="month" stroke="var(--muted-foreground)" />
-                  <YAxis stroke="var(--muted-foreground)" />
-                  <Tooltip contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px" }} />
-                  <Line type="monotone" dataKey="net" stroke="var(--chart-4)" strokeWidth={3} name="Net Cash Flow" />
+                  <XAxis dataKey="month" stroke="var(--muted-foreground)" fontSize={12} />
+                  <YAxis stroke="var(--muted-foreground)" fontSize={12} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#fff",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "12px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="net"
+                    stroke="var(--chart-4)"
+                    strokeWidth={2}
+                    dot={false}
+                    name="Net Cash Flow"
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
 
-            <div className="bg-card border border-border rounded-lg p-6">
-              <h3 className="text-card-foreground mb-4">Income Sources</h3>
+            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+              <h3 className="text-lg font-medium text-foreground mb-5">Income Sources</h3>
               {incomeSources.length === 0 ? (
-                <p className="text-muted-foreground">No income data</p>
+                <p className="text-gray-500 text-sm text-center py-8">No income data</p>
               ) : (
                 <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
@@ -283,7 +324,6 @@ export function Reports() {
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
-                      fill="#8884d8"
                       dataKey="value"
                       label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     >
@@ -291,7 +331,14 @@ export function Reports() {
                         <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: "8px" }} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#fff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "12px",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                      }}
+                    />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -300,29 +347,29 @@ export function Reports() {
           </div>
 
           {/* Cash Flow Statement */}
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="text-card-foreground mb-4">Cash Flow Statement</h3>
+          <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+            <h3 className="text-lg font-medium text-foreground mb-5">Cash Flow Statement</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-border">
-                    <th className="py-2 text-muted-foreground">Month</th>
-                    <th className="py-2 text-muted-foreground">Income</th>
-                    <th className="py-2 text-muted-foreground">Expenses</th>
-                    <th className="py-2 text-muted-foreground">Net</th>
-                    <th className="py-2 text-muted-foreground">Cumulative</th>
+                  <tr className="border-b border-gray-100">
+                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Month</th>
+                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Income</th>
+                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Expenses</th>
+                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Net</th>
+                    <th className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Cumulative</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-gray-50">
                   {cashFlow.map((row, i) => (
-                    <tr key={i} className="border-b border-border hover:bg-accent">
-                      <td className="py-2 text-card-foreground">{row.month}</td>
-                      <td className="py-2 text-card-foreground">{formatCurrency(row.income)}</td>
-                      <td className="py-2 text-card-foreground">{formatCurrency(row.expenses)}</td>
-                      <td className={`py-2 font-semibold ${row.net >= 0 ? "text-chart-2" : "text-destructive"}`}>
+                    <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="py-3 px-4 text-sm text-foreground">{row.month}</td>
+                      <td className="py-3 px-4 text-sm text-foreground">{formatCurrency(row.income)}</td>
+                      <td className="py-3 px-4 text-sm text-foreground">{formatCurrency(row.expenses)}</td>
+                      <td className={`py-3 px-4 text-sm font-semibold ${row.net >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                         {formatCurrency(row.net)}
                       </td>
-                      <td className="py-2 text-card-foreground">{formatCurrency(row.cumulative)}</td>
+                      <td className="py-3 px-4 text-sm text-foreground">{formatCurrency(row.cumulative)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -331,28 +378,28 @@ export function Reports() {
           </div>
 
           {/* Key Metrics */}
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="text-card-foreground mb-4">Key Financial Metrics</h3>
+          <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
+            <h3 className="text-lg font-medium text-foreground mb-5">Key Financial Metrics</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {metrics.map((m, i) => (
-                <div key={i} className="p-4 bg-accent rounded-lg">
-                  <p className="text-sm text-muted-foreground mb-1">{m.label}</p>
-                  <p className="text-xl font-semibold text-card-foreground">{m.value}</p>
+                <div key={i} className="p-4 bg-gray-50 rounded-xl">
+                  <p className="text-xs text-muted-foreground mb-1">{m.label}</p>
+                  <p className="text-xl font-semibold text-foreground">{m.value}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* AI Summary */}
-          <div className="bg-gradient-to-r from-chart-3/10 to-chart-2/10 border border-chart-3/20 rounded-lg p-6">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
-              <FileText className="w-5 h-5 text-chart-3" />
-              <h3 className="text-card-foreground">AI-Generated Report Summary</h3>
+              <FileText className="w-5 h-5 text-blue-600" />
+              <h3 className="text-lg font-medium text-foreground">AI-Generated Report Summary</h3>
             </div>
             {aiLoading ? (
-              <p className="text-muted-foreground">Generating summary...</p>
+              <p className="text-sm text-gray-500">Generating summary...</p>
             ) : (
-              <p className="text-card-foreground whitespace-pre-line">{aiSummary}</p>
+              <p className="text-sm text-foreground whitespace-pre-line">{aiSummary}</p>
             )}
           </div>
         </div>

@@ -29,38 +29,38 @@ export function Sidebar({ activeView, setActiveView, onLogout }: SidebarProps) {
   ];
 
   return (
-    <div className="w-64 bg-sidebar border-r border-sidebar-border h-screen flex flex-col">
-      <div className="p-6 border-b border-sidebar-border">
-        <h1 className="text-sidebar-foreground">FinanceTracker</h1>
-        <p className="text-sm text-sidebar-foreground/60 mt-1">AI-Powered Insights</p>
+    <div className="w-64 bg-white/90 backdrop-blur-sm border-r border-gray-200/60 h-screen flex flex-col">
+      <div className="p-6 border-b border-gray-200/60">
+        <h1 className="text-sidebar-foreground font-semibold tracking-tight">FinanceTracker</h1>
+        <p className="text-sm text-sidebar-foreground/50 mt-0.5">AI-Powered Insights</p>
       </div>
 
-      <nav className="flex-1 p-4 overflow-y-auto">
+      <nav className="flex-1 p-4 overflow-y-auto space-y-1">
         {menuItems.map((item) => {
           const Icon = item.icon;
           return (
             <button
               key={item.id}
               onClick={() => setActiveView(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium ${
                 activeView === item.id
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                  ? 'bg-primary/10 text-primary shadow-sm'
+                  : 'text-sidebar-foreground/80 hover:bg-gray-100 hover:text-sidebar-foreground'
               }`}
             >
-              <Icon className="w-5 h-5" />
+              <Icon className="w-4 h-4" />
               <span>{item.label}</span>
             </button>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-gray-200/60">
         <button
           onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-sidebar-foreground/70 hover:bg-gray-100 hover:text-sidebar-foreground transition-all duration-200"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-4 h-4" />
           <span>Logout</span>
         </button>
       </div>

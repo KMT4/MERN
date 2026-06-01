@@ -1,44 +1,59 @@
+/* frontend/src/styles/theme.css */
 @custom-variant dark (&:is(.dark *));
 
 :root {
   --font-size: 16px;
-  --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
+  --background: #ffffff;                        /* crisp white */
+  --foreground: oklch(0.21 0.006 285.885);     /* very dark, warm gray */
+
   --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #030213;
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0.0058 264.53);
-  --secondary-foreground: #030213;
-  --muted: #ececf0;
+  --card-foreground: var(--foreground);
+
+  --popover: #ffffff;
+  --popover-foreground: var(--foreground);
+
+  /* Primary: refined blue – #4f6ef6 */
+  --primary: oklch(0.55 0.2 265);
+  --primary-foreground: #ffffff;
+
+  --secondary: oklch(0.96 0.005 264.53);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+
+  --muted: #f4f4f5;
   --muted-foreground: #717182;
-  --accent: #e9ebef;
-  --accent-foreground: #030213;
+
+  --accent: #eef0ff;                           /* very subtle blue tint */
+  --accent-foreground: oklch(0.55 0.2 265);
+
   --destructive: #d4183d;
   --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
+
+  --border: rgba(0, 0, 0, 0.08);              /* softer borders */
   --input: transparent;
-  --input-background: #f3f3f5;
+  --input-background: #f9f9fb;
   --switch-background: #cbced4;
+
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: oklch(0.708 0 0);
+
+  --ring: oklch(0.55 0.2 265);
+
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+
+  --radius: 0.75rem;                           /* smoother corners */
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f4f4f5;
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: rgba(0, 0, 0, 0.06);
+  --sidebar-ring: var(--ring);
 }
 
 .dark {
@@ -127,11 +142,6 @@
   body {
     @apply bg-background text-foreground;
   }
-
-  /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
 
   html {
     font-size: var(--font-size);
