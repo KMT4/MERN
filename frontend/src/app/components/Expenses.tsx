@@ -51,10 +51,13 @@ export function Expenses() {
     setLoading(true);
     setError('');
     try {
+      
+      const currentMonth = new Date().toISOString().slice(0, 7); // "2026-06"
+
       const [txns, summary, breakdown] = await Promise.all([
         getTransactions('expense'),
         getMonthlySummary(),
-        getCategoryBreakdown(),
+        getCategoryBreakdown({ month: currentMonth }),  
       ]);
       setExpenses(txns);
       const expenseItem = summary.find((s) => s._id === 'expense');

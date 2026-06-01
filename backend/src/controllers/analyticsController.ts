@@ -29,27 +29,36 @@ export const getMonthlySummary = async (req: AuthRequest, res: Response) => {
 
 export const getCategoryBreakdown = async (req: AuthRequest, res: Response) => {
   try {
+    const { month } = req.query; // optional "YYYY-MM"
+
+    const match: any = {
+      userId: new mongoose.Types.ObjectId(req.userId),
+      type: "expense",
+    };
+
+    if (month) {
+      const [year, mon] = (month as string).split("-").map(Number);
+      const start = new Date(year, mon - 1, 1);
+      const end = new Date(year, mon, 0, 23, 59, 59);
+      match.date = { $gte: start, $lte: end };
+    }
+
     const breakdown = await Transaction.aggregate([
-      {
-        $match: {
-          userId: new mongoose.Types.ObjectId(req.userId),
-          type: "expense"
-        }
-      },
+      { $match: match },
       {
         $group: {
           _id: "$category",
-          total: { $sum: "$amount" }
-        }
+          total: { $sum: "$amount" },
+        },
       },
-      { $sort: { total: -1 } }
+      { $sort: { total: -1 } },
     ]);
+
     res.json(breakdown);
   } catch (error) {
     res.status(500).json({ message: "Error generating breakdown", error });
   }
 };
-
 export const getBalance = async (req: AuthRequest, res: Response) => {
   try {
     const result = await Transaction.aggregate([

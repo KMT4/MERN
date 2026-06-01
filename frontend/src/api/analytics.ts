@@ -15,8 +15,8 @@ export interface CategoryBreakdownItem {
   total: number;
 }
 
-export const getCategoryBreakdown = async (): Promise<CategoryBreakdownItem[]> => {
-  const { data } = await api.get('/analytics/category-breakdown');
+export const getCategoryBreakdown = async (params?: { month?: string }) => {
+  const { data } = await api.get('/analytics/category-breakdown', { params });
   return data;
 };
 
