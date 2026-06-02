@@ -57,7 +57,7 @@ export function Login({ onLogin }: LoginProps) {
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md border border-gray-100">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            FinanceTracker
+            FinSmart
           </h1>
           <p className="text-muted-foreground mt-1">
             AI-Powered Personal Finance Management

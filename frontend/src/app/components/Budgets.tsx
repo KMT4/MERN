@@ -503,8 +503,8 @@ export function Budgets() {
                       {isOverBudget && (
                         <div className="mt-3 p-3 rounded-xl bg-red-50 border border-red-100">
                           <p className="text-sm text-red-600 font-medium">
-                            You have exceeded this budget by $
-                            {Math.abs(budget.remaining).toLocaleString()}
+                            You have exceeded this budget by   
+                            {getCurrencySymbol()} {Math.abs(budget.remaining).toLocaleString()}
                           </p>
                         </div>
                       )}
